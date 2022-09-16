@@ -1,6 +1,6 @@
 #include "straightline/prog1.h"
 
-// a = 5 + 3; b = (print(a, a-1), 10*a); print b; 333
+// a = 5 + 3; b = (print(a, a-1), 10*a); print b; 
 A::Stm *Prog() {
   // a = 5 + 3;
   A::Stm *ass_stm1 = new A::AssignStm(
