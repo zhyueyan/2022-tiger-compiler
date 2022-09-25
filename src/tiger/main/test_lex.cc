@@ -61,9 +61,6 @@ int main(int argc, char **argv) {
     switch (tok) {
     case Parser::ID:
     case Parser::STRING:
-      // if(scanner.GetTokPos()==246) {
-      //   printf("%d",scanner.matched().data()[0]);
-      // }
       printf("%10s %4d %s\n", tokname[tok].data(), scanner.GetTokPos(),
              !scanner.matched().empty() ? scanner.matched().data() : "(null)");
       break;

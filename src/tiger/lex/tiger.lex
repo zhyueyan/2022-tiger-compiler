@@ -16,7 +16,8 @@
   *
   * Error-handling: Give error message 'illegal token' when illegal char is recognized.
   *                 Skip white space chars.space, tabs and LF.
-  *                 Give error message 'unpaired '"'' when " is not paired in the string.Give error message 'unpaired '"'' when " is not paired in the string.
+  *                 Give error message 'unpaired '"'' when " is not paired in the string.
+  *                 Give error message 'illegal token in IGNORE when printable char is in /f__f/.
   * End-of-file: Free the pointer when reading <<EOF>>.
   */
 
@@ -56,12 +57,17 @@
                 }
 }
 <IGNORE>{
-    \\ {
+    \\          {
                     adjustStr();
                     begin(StartCondition__::STR);
                  }
 
-    .           adjustStr();
+    [\t\n\0\f ]       adjustStr();
+
+    .           {
+                    adjustStr();
+                    errormsg_->Error(errormsg_->tok_pos_, "illegal token in IGNORE");
+                } 
 }
 <STR>{
     \"          {
