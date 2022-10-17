@@ -66,6 +66,7 @@ test_lab3() {
     local ref=${ref_dir}/${testcase_name}.out
 
     ./test_parse "$testcase" >&/tmp/output.txt
+    # echo /tmp/output.txt
     res_run=$?
 
     # Check result of the run
