@@ -118,7 +118,6 @@ test_lab4() {
     local ref=${ref_dir}/${testcase_name}.out
 
     ./test_semant "$testcase" >&/tmp/output.txt
-
     # Only check the error message part
     awk -F: '{print $3}' "$ref" >/tmp/ref.txt
     grep -Fof /tmp/ref.txt /tmp/output.txt >&/tmp/output_sel.txt
