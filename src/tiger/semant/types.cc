@@ -17,7 +17,6 @@ Ty *NameTy::ActualTy() {
 bool Ty::IsSameType(Ty *expected) {
   Ty *a = ActualTy();
   Ty *b = expected->ActualTy();
-
   if ((typeid(*a) == typeid(NilTy) && typeid(*b) == typeid(RecordTy)) ||
       (typeid(*a) == typeid(RecordTy) && typeid(*b) == typeid(NilTy)))
     return true;
