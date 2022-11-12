@@ -12,7 +12,6 @@ int main(int argc, char **argv) {
   std::unique_ptr<absyn::AbsynTree> absyn_tree;
   reg_manager = new frame::X64RegManager();
   frags = new frame::Frags();
-  
   if (argc < 2) {
     fprintf(stderr, "usage: tiger-compiler file.tig\n");
     exit(1);
@@ -31,6 +30,7 @@ int main(int argc, char **argv) {
       absyn_tree = parser.TransferAbsynTree();
       errormsg = parser.TransferErrormsg();
     }
+
 
     {
       // Lab 5: escape analysis

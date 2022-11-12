@@ -138,14 +138,15 @@ test_lab5_part1() {
   local testcase_dir=${WORKDIR}/testdata/lab5or6/testcases
   local ref_dir=${WORKDIR}/testdata/lab5or6/refs-part1
   local testcase_name
-
+  
   build test_translate
+  # echo "build finish"
   for testcase in "$testcase_dir"/*.tig; do
     testcase_name=$(basename "$testcase" | cut -f1 -d".")
     local ref=${ref_dir}/${testcase_name}.out
 
     ./test_translate "$testcase" >&/tmp/output.txt
-
+    # ./build/test_translate "$testcase"
     # Check output
     diff /tmp/output.txt "${ref}"
     if [[ $? != 0 ]]; then

@@ -2,6 +2,7 @@
 #define TIGER_FRAME_FRAME_H_
 
 #include <list>
+#include <vector>
 #include <memory>
 #include <string>
 
@@ -13,7 +14,7 @@ namespace frame {
 class RegManager {
 public:
   RegManager() : temp_map_(temp::Map::Empty()) {}
-
+  virtual ~RegManager() {}
   temp::Temp *GetRegister(int regno) { return regs_[regno]; }
 
   /**
@@ -66,16 +67,18 @@ protected:
   std::vector<temp::Temp *> regs_;
 };
 
-class Access {
+class Access { //reg or stack
 public:
   /* TODO: Put your lab5 code here */
-  
+  virtual tree::Exp *ToExp(tree::Exp *framePtr) const = 0;
   virtual ~Access() = default;
   
 };
 
 class Frame {
   /* TODO: Put your lab5 code here */
+  std::list<frame::Access *> *formals_; //传进来的参数列表
+  frame::Access *allocLocal(bool escape); //创建函数体内局部变量
 };
 
 /**

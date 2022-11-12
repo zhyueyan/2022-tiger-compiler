@@ -62,7 +62,13 @@ public:
 class ProgTr {
 public:
   // TODO: Put your lab5 code here */
-
+  ProgTr(std::unique_ptr<absyn::AbsynTree> a,std::unique_ptr<err::ErrorMsg> e):absyn_tree_(std::move(a)),errormsg_(std::move(e)){
+    main_level_ = std::make_unique<Level>();
+    tenv_ = std::make_unique<env::TEnv>();
+    venv_ = std::make_unique<env::VEnv>();
+    FillBaseTEnv();
+    FillBaseVEnv();
+  }
   /**
    * Translate IR tree
    */
