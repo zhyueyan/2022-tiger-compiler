@@ -8,14 +8,34 @@ temp::TempList *X64RegManager::Registers() {
   temp::TempList* templist = new temp::TempList();
   return templist;
 }
-temp::TempList *X64RegManager::ArgRegs() {}
-temp::TempList *X64RegManager::CallerSaves() {}
-temp::TempList *X64RegManager::CalleeSaves() {}
-temp::TempList *X64RegManager::ReturnSink() {}
-int X64RegManager::WordSize() {}
-temp::Temp *X64RegManager::FramePointer() {}
-temp::Temp *X64RegManager::StackPointer() {}
-temp::Temp *X64RegManager::ReturnValue() {}
+temp::TempList *X64RegManager::ArgRegs() {
+  temp::TempList* templist = new temp::TempList();
+  return templist;
+}
+temp::TempList *X64RegManager::CallerSaves() {
+  temp::TempList* templist = new temp::TempList();
+  return templist;
+}
+temp::TempList *X64RegManager::CalleeSaves() {
+  temp::TempList* templist = new temp::TempList();
+  return templist;
+}
+temp::TempList *X64RegManager::ReturnSink() {
+  temp::TempList* templist = new temp::TempList();
+  return templist;
+}
+int X64RegManager::WordSize() {
+  return 0;
+}
+temp::Temp *X64RegManager::FramePointer() {
+  return temp::TempFactory::NewTemp();
+}
+temp::Temp *X64RegManager::StackPointer() {
+  return temp::TempFactory::NewTemp();
+}
+temp::Temp *X64RegManager::ReturnValue() {
+  return temp::TempFactory::NewTemp();
+}
 
 class InFrameAccess : public Access {
 public:

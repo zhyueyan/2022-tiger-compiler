@@ -140,7 +140,7 @@ test_lab5_part1() {
   local testcase_name
   
   build test_translate
-  # echo "build finish"
+  echo "build finish"
   for testcase in "$testcase_dir"/*.tig; do
     testcase_name=$(basename "$testcase" | cut -f1 -d".")
     local ref=${ref_dir}/${testcase_name}.out
