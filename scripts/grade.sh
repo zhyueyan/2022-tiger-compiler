@@ -66,6 +66,7 @@ test_lab3() {
     local ref=${ref_dir}/${testcase_name}.out
 
     ./test_parse "$testcase" >&/tmp/output.txt
+    # echo /tmp/output.txt
     res_run=$?
 
     # Check result of the run
@@ -117,7 +118,6 @@ test_lab4() {
     local ref=${ref_dir}/${testcase_name}.out
 
     ./test_semant "$testcase" >&/tmp/output.txt
-
     # Only check the error message part
     awk -F: '{print $3}' "$ref" >/tmp/ref.txt
     grep -Fof /tmp/ref.txt /tmp/output.txt >&/tmp/output_sel.txt
@@ -138,14 +138,15 @@ test_lab5_part1() {
   local testcase_dir=${WORKDIR}/testdata/lab5or6/testcases
   local ref_dir=${WORKDIR}/testdata/lab5or6/refs-part1
   local testcase_name
-
+  
   build test_translate
+  echo "build finish"
   for testcase in "$testcase_dir"/*.tig; do
     testcase_name=$(basename "$testcase" | cut -f1 -d".")
     local ref=${ref_dir}/${testcase_name}.out
 
     ./test_translate "$testcase" >&/tmp/output.txt
-
+    # ./build/test_translate "$testcase"
     # Check output
     diff /tmp/output.txt "${ref}"
     if [[ $? != 0 ]]; then
