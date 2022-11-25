@@ -5,9 +5,12 @@
 namespace temp {
 
 Temp *TempList::NthTemp(int i) const {
-  for (auto it : temp_list_)
-    if (i-- == 0)
+  for (auto it : temp_list_){
+    if (i == 0)
       return it;
+    i--;
+  }
+    
   assert(0);
 }
 } // namespace temp

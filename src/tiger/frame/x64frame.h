@@ -8,6 +8,7 @@
 #include "tiger/frame/frame.h"
 
 namespace frame {
+#define WORD_SIZE 8
 class X64RegManager : public RegManager {
   /* TODO: Put your lab5 code here */
   public:
@@ -29,13 +30,28 @@ class X64RegManager : public RegManager {
     temp::Temp *FramePointer();
     temp::Temp *StackPointer();
     temp::Temp *ReturnValue();
+
   private:
     enum Register {
       RAX, RBX, RCX, RDX, RSI, RDI, RBP, R8, R9, R10, R11, R12, R13, R14, R15, RSP, REG_COUNT
     };
     std::string reg_str[16] = {"%rax","%rbx","%rcx","%rdx","%rsi","%rdi","%rbp","%r8","%r9","%r10","%r11","%r12","%r13","%r14","%r15"};
 };
-
+class X64Frame : public Frame {
+  /* TODO: Put your lab5 code here */
+public:
+  X64Frame(temp::Label* name, std::list<bool> escapes) : Frame(name, escapes) {
+    this->s_offset = -WORD_SIZE;
+    this->formals_ = new std::list<frame::Access *>;
+    for (auto ele : escapes) {
+      this->formals_->push_back(AllocLocal(ele));
+    }
+  };
+  Access* AllocLocal(bool escape);
+  std::string GetLabel() const;
+  
+  
+};
 
 
 } // namespace frame
