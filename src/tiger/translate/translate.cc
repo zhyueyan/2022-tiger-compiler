@@ -90,6 +90,8 @@ public:
   [[nodiscard]] Cx UnCx(err::ErrorMsg *errormsg) override {
     /* TODO: Put your lab5 code here */
     printf("Error: Nx cannot be a test exp.");
+    tr::PatchList trues;
+    return Cx(trues,trues,NULL);
   }
 };
 
@@ -128,10 +130,14 @@ public:
 void ProgTr::Translate() {
   /* TODO: Put your lab5 code here */
   std::list<bool> e;
+  
   main_level_.get()->frame_ = new frame::X64Frame(temp::LabelFactory::NamedLabel("tigermain"),e);
   main_level_.get()->parent_ = NULL;
+  
   tr::ExpAndTy* et = absyn_tree_.get()->Translate(venv_.get(),tenv_.get(),main_level_.get(),temp::LabelFactory::NamedLabel("tigermain"),errormsg_.get());
+  // et->exp_->UnCx(errormsg_.get());
   frame::ProcFrag *frag = new frame::ProcFrag(et->exp_->UnNx(), main_level_.get()->frame_);
+  
   frags->PushBack(frag);
 }
 
@@ -154,7 +160,7 @@ tr::ExpAndTy *AbsynTree::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
                                    tr::Level *level, temp::Label *label,
                                    err::ErrorMsg *errormsg) const {
   /* TODO: Put your lab5 code here */
-  root_->Translate(venv,tenv,level,label,errormsg);
+  return root_->Translate(venv,tenv,level,label,errormsg);
 }
 
 tr::ExpAndTy *SimpleVar::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
@@ -442,12 +448,12 @@ tr::ExpAndTy *RecordExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   /* type checking */
   if(!recTy) {
     errormsg->Error(pos_, "undefined type %s",typ_->Name().data());
-    new tr::ExpAndTy(new tr::ExExp(new tree::ConstExp(0)),type::VoidTy::Instance());
+    return new tr::ExpAndTy(new tr::ExExp(new tree::ConstExp(0)),type::VoidTy::Instance());
   }
   recTy = recTy->ActualTy();
   if(typeid(*recTy) != typeid(type::RecordTy)){
     errormsg->Error(pos_, "undefined type %s",typ_->Name().data());
-    new tr::ExpAndTy(new tr::ExExp(new tree::ConstExp(0)),type::VoidTy::Instance());
+    return new tr::ExpAndTy(new tr::ExExp(new tree::ConstExp(0)),type::VoidTy::Instance());
   }
   
   
@@ -476,11 +482,11 @@ tr::ExpAndTy *RecordExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     type::Ty *formalTy = (*formal_it)->ty_->ActualTy();
     if(!t->IsSameType(formalTy)) {
       errormsg->Error((*it)->exp_->pos_, "record type mismatch");
-      new tr::ExpAndTy(new tr::ExExp(new tree::ConstExp(0)),type::VoidTy::Instance());
+      return new tr::ExpAndTy(new tr::ExExp(new tree::ConstExp(0)),type::VoidTy::Instance());
     }
     if((*it)->name_->Name() != (*formal_it)->name_->Name()) {
       errormsg->Error(pos_ , "record name mismatch");
-      new tr::ExpAndTy(new tr::ExExp(new tree::ConstExp(0)),type::VoidTy::Instance());
+      return new tr::ExpAndTy(new tr::ExExp(new tree::ConstExp(0)),type::VoidTy::Instance());
     }
     /* create exp */
     if(!stm){

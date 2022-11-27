@@ -4,6 +4,7 @@ WORKDIR=$(dirname "$(dirname "$(readlink -f "$0")")")
 
 build() {
   build_target=$1
+  # echo "$build_target"
   cd "$WORKDIR" && mkdir -p build && cd build && cmake -DCMAKE_BUILD_TYPE=Release .. >/dev/null && make "$build_target" -j >/dev/null
   if [[ $? != 0 ]]; then
     echo "Error: Compile error, try to run make build and debug"
@@ -173,7 +174,6 @@ test_lab5() {
   local mergecase_name
 
   build test_codegen
-  echo "finish"
   for testcase in "$testcase_dir"/*.tig; do
     testcase_name=$(basename "$testcase" | cut -f1 -d".")
     local ref=${ref_dir}/${testcase_name}.out
