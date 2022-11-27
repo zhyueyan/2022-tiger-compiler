@@ -83,6 +83,7 @@ class Frame {
   public:
     std::list<frame::Access *> *formals_; //传进来的参数列表
     int s_offset;
+    int max_args;
   protected:
     temp::Label* label;
     

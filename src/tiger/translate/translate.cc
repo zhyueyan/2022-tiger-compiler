@@ -99,14 +99,17 @@ public:
 
   CxExp(PatchList trues, PatchList falses, tree::Stm *stm)
       : cx_(trues, falses, stm) {}
+
+  CxExp(Cx cx)
+      : cx_(cx) {}
   
   [[nodiscard]] tree::Exp *UnEx() override {
     /* TODO: Put your lab5 code here */
     temp::Temp *r = temp::TempFactory::NewTemp();
     temp::Label *t = temp::LabelFactory::NewLabel();
     temp::Label *f = temp::LabelFactory::NewLabel();
-    cx_.trues_ = PatchList(std::list<temp::Label **>({&t}));
-    cx_.falses_ = PatchList(std::list<temp::Label **>({&f}));
+    cx_.trues_.DoPatch(t);
+    cx_.falses_.DoPatch(f);
     return new tree::EseqExp(new tree::MoveStm(new tree::TempExp(r),new tree::ConstExp(1)),
     new tree::EseqExp(cx_.stm_,new tree::EseqExp(new tree::LabelStm(f),
     new tree::EseqExp(new tree::MoveStm(new tree::TempExp(r),new tree::ConstExp(0)),
@@ -125,9 +128,11 @@ public:
 void ProgTr::Translate() {
   /* TODO: Put your lab5 code here */
   std::list<bool> e;
-  main_level_.get()->frame_ = new frame::X64Frame(temp::LabelFactory::NamedLabel("tiger_main"),e);
+  main_level_.get()->frame_ = new frame::X64Frame(temp::LabelFactory::NamedLabel("tigermain"),e);
   main_level_.get()->parent_ = NULL;
-  absyn_tree_.get()->Translate(venv_.get(),tenv_.get(),main_level_.get(),temp::LabelFactory::NamedLabel("tiger_main"),errormsg_.get());
+  tr::ExpAndTy* et = absyn_tree_.get()->Translate(venv_.get(),tenv_.get(),main_level_.get(),temp::LabelFactory::NamedLabel("tigermain"),errormsg_.get());
+  frame::ProcFrag *frag = new frame::ProcFrag(et->exp_->UnNx(), main_level_.get()->frame_);
+  frags->PushBack(frag);
 }
 
 } // namespace tr
@@ -320,6 +325,10 @@ tr::ExpAndTy *CallExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     else {
       res = frame::ExternalCall(func_->Name(),exp_list);
     }
+    if(actuals_list.size()+1 > reg_manager->ArgRegs()->GetList().size()){
+      int num = actuals_list.size()+1-reg_manager->ArgRegs()->GetList().size();
+      level->frame_->max_args = (level->frame_->max_args>num)?level->frame_->max_args:num;
+    }
     
     return new tr::ExpAndTy(new tr::ExExp(res),type);
   }
@@ -345,7 +354,7 @@ tr::ExpAndTy *OpExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
       if(!r_t->IsSameType(type::IntTy::Instance())){
         errormsg->Error(right_->pos_,"integer required");
       }
-      tree::Exp *exp = new tree::BinopExp(tree::BinOp(oper_-1),l_e->UnEx(),r_e->UnEx());
+      tree::Exp *exp = new tree::BinopExp(tree::BinOp(oper_-2),l_e->UnEx(),r_e->UnEx());
       return new tr::ExpAndTy(new tr::ExExp(exp),type::IntTy::Instance());
     }
     case absyn::EQ_OP: case absyn::NEQ_OP: case absyn::LT_OP: 
@@ -363,10 +372,12 @@ tr::ExpAndTy *OpExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
         args->Append(r_e->UnEx());
         tree::Exp *exp = frame::ExternalCall(s,args);
         if(oper_ == EQ_OP){
-          return new tr::ExpAndTy(new tr::ExExp(exp),type::IntTy::Instance());
+          tr::Exp *exp_ex = new tr::ExExp(exp);
+          return new tr::ExpAndTy(new tr::CxExp(exp_ex->UnCx(errormsg)),type::IntTy::Instance());
         }
         else{
-          return new tr::ExpAndTy(new tr::ExExp(new tree::BinopExp(tree::MINUS_OP, new tree::ConstExp(1), exp)),type::IntTy::Instance());
+          tr::Exp *exp_ex = new tr::ExExp(new tree::BinopExp(tree::MINUS_OP, new tree::ConstExp(1), exp));
+          return new tr::ExpAndTy(new tr::CxExp(exp_ex->UnCx(errormsg)),type::IntTy::Instance());
         }
       }
       /* compare int */
@@ -493,17 +504,19 @@ tr::ExpAndTy *SeqExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   auto it = list.rbegin();
   tree::Exp *exp = NULL;
   tr::ExpAndTy *et;
+  type::Ty *type;
   for(; it != list.rend(); it++) {
       et = (*it)->Translate(venv,tenv,level,label,errormsg);
       tr::Exp *e = et->exp_;
       if(!exp){
         exp = e->UnEx();
+        type = et->ty_;
       }
       else{
         exp = new tree::EseqExp(e->UnNx(),exp);
       } 
     }
-  return new tr::ExpAndTy(new tr::ExExp(exp),et->ty_);
+  return new tr::ExpAndTy(new tr::ExExp(exp),type);
 }
 
 tr::ExpAndTy *AssignExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
@@ -513,6 +526,9 @@ tr::ExpAndTy *AssignExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   tr::ExpAndTy *v_et = var_->Translate(venv,tenv,level,label,errormsg);
   type::Ty *v_t = v_et->ty_->ActualTy();
   tr::Exp *v_e = v_et->exp_;
+  // if(typeid(*exp_) == typeid(tree::MemExp)){
+
+  // }
   tr::ExpAndTy *e_et = exp_->Translate(venv,tenv,level,label,errormsg);
   type::Ty *e_t = e_et->ty_;
   tr::Exp *e_e = e_et->exp_;
@@ -762,6 +778,7 @@ tr::Exp *FunctionDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     std::list<bool> formals;
     formals.push_back(true);
     for(auto i:(*it)->params_->GetList()){
+      // printf("%d\n",i->escape_);
       formals.push_back(i->escape_);
     }
     tr::Level *new_level = new tr::Level((*it)->name_,formals,level);
@@ -773,6 +790,7 @@ tr::Exp *FunctionDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     env::FunEntry* fun_entry = (env::FunEntry *)venv->Look((*it)->name_);
     std::list<type::Field *> formals_fieldlist = (*it)->params_->MakeFieldList(tenv,errormsg)->GetList();
     auto a = fun_entry->level_->frame_->formals_->begin();
+    a++;
     for(auto f = formals_fieldlist.begin(); f != formals_fieldlist.end(); f++, a++) {
       venv->Enter((*f)->name_,new env::VarEntry(new tr::Access(fun_entry->level_,(*a)),(*f)->ty_));
     }
@@ -783,6 +801,12 @@ tr::Exp *FunctionDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
       errormsg->Error(pos_, "procedure returns value");
     }
     else if(!actualType->IsSameType(returnType)) {
+      if(typeid(*actualType) != typeid(type::IntTy)){
+        printf("actualwrong");
+      }
+      if(typeid(*returnType) != typeid(type::IntTy)){
+        printf("definewrong");
+      }
       errormsg->Error(pos_, "wrong function return type");
     }
     venv->EndScope();

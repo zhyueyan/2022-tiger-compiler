@@ -35,7 +35,7 @@ class X64RegManager : public RegManager {
     enum Register {
       RAX, RBX, RCX, RDX, RSI, RDI, RBP, R8, R9, R10, R11, R12, R13, R14, R15, RSP, REG_COUNT
     };
-    std::string reg_str[16] = {"%rax","%rbx","%rcx","%rdx","%rsi","%rdi","%rbp","%r8","%r9","%r10","%r11","%r12","%r13","%r14","%r15"};
+    std::string reg_str[16] = {"%rax","%rbx","%rcx","%rdx","%rsi","%rdi","%rbp","%r8","%r9","%r10","%r11","%r12","%r13","%r14","%r15","%rsp"};
 };
 class X64Frame : public Frame {
   /* TODO: Put your lab5 code here */
@@ -46,6 +46,7 @@ public:
     for (auto ele : escapes) {
       this->formals_->push_back(AllocLocal(ele));
     }
+    max_args = 0;
   };
   Access* AllocLocal(bool escape);
   std::string GetLabel() const;

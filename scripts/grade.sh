@@ -173,9 +173,9 @@ test_lab5() {
   local mergecase_name
 
   build test_codegen
+  echo "finish"
   for testcase in "$testcase_dir"/*.tig; do
     testcase_name=$(basename "$testcase" | cut -f1 -d".")
-    # testcase_name=$(basename "bsearch" | cut -f1 -d".")
     local ref=${ref_dir}/${testcase_name}.out
     local assem=$testcase.s
     ./test_codegen "$testcase" >&/dev/null
