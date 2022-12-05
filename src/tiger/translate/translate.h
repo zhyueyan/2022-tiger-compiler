@@ -43,8 +43,8 @@ private:
 
 class Access {
 public:
-  Level *level_;
-  frame::Access *access_;
+  Level *level_; //frame的上一层抽象，理解为栈帧链
+  frame::Access *access_; //代表一个寄存器或栈上变量
 
   Access(Level *level, frame::Access *access)
       : level_(level), access_(access) {}
@@ -57,12 +57,23 @@ public:
   Level *parent_;
 
   /* TODO: Put your lab5 code here */
+  Level() : frame_(nullptr), parent_(nullptr) {}
+  Level(temp::Label* name, std::list<bool> formals, Level *parent){
+    parent_ = parent;
+    frame_ = frame::NewFrame(name,formals);
+  }
 };
 
 class ProgTr {
 public:
   // TODO: Put your lab5 code here */
-
+  ProgTr(std::unique_ptr<absyn::AbsynTree> a,std::unique_ptr<err::ErrorMsg> e):absyn_tree_(std::move(a)),errormsg_(std::move(e)){
+    main_level_ = std::make_unique<Level>();
+    tenv_ = std::make_unique<env::TEnv>();
+    venv_ = std::make_unique<env::VEnv>();
+    FillBaseTEnv();
+    FillBaseVEnv();
+  }
   /**
    * Translate IR tree
    */

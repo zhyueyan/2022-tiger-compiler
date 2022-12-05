@@ -50,6 +50,9 @@ private:
   std::string string_buf_;
   int char_pos_;
   std::unique_ptr<err::ErrorMsg> errormsg_;
+  char *str = NULL;
+  int len = 0;
+  int pairs = 0;
 
   /**
    * NOTE: do not change all the funtion signature below, which is used by
@@ -63,12 +66,24 @@ private:
   void postCode(PostEnum__ type);
   void adjust();
   void adjustStr();
+  void initStr();
+  void addStr(std::string a);
+  std::string getStr();
+
+  void initPair();
+  void addPair();
+  int decreasePair();
+  void atos(std::string s);
+  void atoc(std::string s);
+
+
 };
 
 inline int Scanner::lex() { return lex__(); }
 
 inline void Scanner::preCode() {
   // Optionally replace by your own code
+  
 }
 
 inline void Scanner::postCode(PostEnum__ type) {
@@ -84,4 +99,45 @@ inline void Scanner::adjust() {
 
 inline void Scanner::adjustStr() { char_pos_ += length(); }
 
+inline void Scanner::initStr() {
+  if(str) free(str);
+  str = (char*)malloc(100);
+  str[0] = '\0';
+  len = 0;
+}
+
+inline void Scanner::addStr(std::string a) {
+  str[len++] = a[0];
+  str[len] = '\0';
+}
+
+inline std::string Scanner::getStr() {
+  std::string s = str;
+  return s;
+}
+
+inline void Scanner::initPair() {
+  pairs = 1;
+}
+inline void Scanner::addPair() {
+  pairs++;
+}
+inline int Scanner::decreasePair() {
+  pairs--;
+  return pairs;
+}
+inline void Scanner::atos(std::string s) {
+  char a = atoi(s.c_str()+1);
+  str[len++] = a;
+  str[len] = '\0';
+  
+  
+}
+
+inline void Scanner::atoc(std::string s) {
+  int a = s[2] - 'a'>=0 ? s[2] - 'a' + 1:s[2] - 'A' + 1;
+  str[len++] = a;
+  str[len] = '\0';
+  
+}
 #endif // TIGER_LEX_SCANNER_H_
