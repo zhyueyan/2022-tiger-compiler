@@ -109,18 +109,14 @@ std::string X64Frame::GetLabel() const {
 tree::Stm *procEntryExit1(Frame* frame, tree::Exp* body) {
   //保存caller callee寄存器？
   tree::Stm *stm = new tree::ExpStm(new tree::ConstExp(0));
-  
-  // temp::TempList *callee_save = reg_manager->CalleeSaves();
-  // for(int i = 0 ; i < callee_save->GetList().size(); i++){
-  //   temp::Temp *new_temp = temp::TempFactory::NewTemp();
-  //   stm = new tree::SeqStm(stm,new tree::MoveStm(new tree::TempExp(new_temp),new tree::TempExp(callee_save->NthTemp(i))));
-  //   if(restore == NULL){
-  //     restore = new tree::MoveStm(new tree::TempExp(callee_save->NthTemp(i)),new tree::TempExp(new_temp));
-  //   }
-  //   else {
-  //     restore = new tree::SeqStm(restore,new tree::MoveStm(new tree::TempExp(callee_save->NthTemp(i)),new tree::TempExp(new_temp)));
-  //   }
-  // }
+  tree::Stm *restore = new tree::ExpStm(new tree::ConstExp(0));
+  temp::TempList *callee_save = reg_manager->CalleeSaves();
+  for(int i = 0 ; i < callee_save->GetList().size(); i++){
+    temp::Temp *new_temp = temp::TempFactory::NewTemp();
+    stm = new tree::SeqStm(stm,new tree::MoveStm(new tree::TempExp(new_temp),new tree::TempExp(callee_save->NthTemp(i))));
+    restore = new tree::SeqStm(restore,new tree::MoveStm(new tree::TempExp(callee_save->NthTemp(i)),new tree::TempExp(new_temp)));
+    
+  }
   int i = 0;
   temp::TempList *t = reg_manager->ArgRegs();
   for(auto it = frame->formals_->begin(); it != frame->formals_->end(); it++, i++){
@@ -133,18 +129,18 @@ tree::Stm *procEntryExit1(Frame* frame, tree::Exp* body) {
     }
     
   }
-  std::list<frame::Access *> *formal_list = frame->formals_;
-  tree::Stm *restore = new tree::ExpStm(new tree::ConstExp(0));
-  for(auto f: *formal_list){
-    temp::Temp *new_temp = temp::TempFactory::NewTemp();
-    tree::Exp *temp_exp =  f->ToExp(new tree::TempExp(reg_manager->FramePointer()));
-    if(typeid(*temp_exp) == typeid(tree::TempExp)){
-      stm = new tree::SeqStm(stm,new tree::MoveStm(new tree::TempExp(new_temp),temp_exp));
-      restore = new tree::SeqStm(restore,new tree::MoveStm(temp_exp,new tree::TempExp(new_temp)));
+  // std::list<frame::Access *> *formal_list = frame->formals_;
+  // tree::Stm *restore = new tree::ExpStm(new tree::ConstExp(0));
+  // for(auto f: *formal_list){
+  //   temp::Temp *new_temp = temp::TempFactory::NewTemp();
+  //   tree::Exp *temp_exp =  f->ToExp(new tree::TempExp(reg_manager->FramePointer()));
+  //   if(typeid(*temp_exp) == typeid(tree::TempExp)){
+  //     stm = new tree::SeqStm(stm,new tree::MoveStm(new tree::TempExp(new_temp),temp_exp));
+  //     restore = new tree::SeqStm(restore,new tree::MoveStm(temp_exp,new tree::TempExp(new_temp)));
       
-    }
+  //   }
     
-  }
+  // }
   tree::Stm *body_ret = new tree::MoveStm(new tree::TempExp(reg_manager->ReturnValue()),body);
   stm = new tree::SeqStm(stm,body_ret);
   return new tree::SeqStm(stm,restore);
