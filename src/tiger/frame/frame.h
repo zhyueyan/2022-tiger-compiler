@@ -84,8 +84,10 @@ class Frame {
     std::list<frame::Access *> *formals_; //传进来的参数列表
     int s_offset;
     int max_args;
+    temp::Label *frame_size_;
   protected:
     temp::Label* label;
+    
     
   public:
     Frame(temp::Label* name, std::list<bool> escapes) : label(name) {};

@@ -145,9 +145,18 @@ tree::Stm *procEntryExit1(Frame* frame, tree::Exp* body) {
   stm = new tree::SeqStm(stm,body_ret);
   return new tree::SeqStm(stm,restore);
 }
+
+assem::InstrList *ProcEntryExit2(assem::InstrList *body) {
+  assem::Instr *return_sink = new assem::OperInstr("", nullptr, reg_manager->ReturnSink(), nullptr);
+  body->Append(return_sink);
+  return body;
+}
+
 assem::Proc *ProcEntryExit3(Frame *frame, assem::InstrList *body){
   std::string prolog = frame->GetLabel() + ":\n";
   std::string num = std::to_string(-frame->s_offset+frame->max_args*WORD_SIZE);
+  std::string fs = ".set " + frame->frame_size_->Name() + ", " + num + "\n";
+  prolog.append(fs);
   prolog.append("subq $"+num+", %rsp\n");
   std::string epilog = "addq $"+num+", %rsp\n";
   epilog.append("retq\n");

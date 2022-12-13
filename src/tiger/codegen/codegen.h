@@ -42,7 +42,7 @@ class CodeGen {
 public:
   CodeGen(frame::Frame *frame, std::unique_ptr<canon::Traces> traces)
       : frame_(frame), traces_(std::move(traces)) {
-        fs_ = std::to_string(frame->s_offset*(-1));
+        fs_ = frame->frame_size_->Name();
       }
 
   void Codegen();

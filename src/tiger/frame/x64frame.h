@@ -41,6 +41,7 @@ class X64Frame : public Frame {
   /* TODO: Put your lab5 code here */
 public:
   X64Frame(temp::Label* name, std::list<bool> escapes) : Frame(name, escapes) {
+    frame_size_ = temp::LabelFactory::NamedLabel(name->Name() + "_framesize");
     this->s_offset = -WORD_SIZE;
     this->formals_ = new std::list<frame::Access *>;
     for (auto ele : escapes) {

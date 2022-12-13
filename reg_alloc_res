@@ -1,0 +1,30 @@
+L20:
+leaq tigermain_framesize(%rsp), t255
+movq $-8, t256
+movq t255, t257
+addq t256, t257
+movq $16, t258
+movq t258, (t257)
+leaq tigermain_framesize(%rsp), t259
+movq $-16, t260
+movq t259, t261
+addq t260, t261
+movq t261, t254
+leaq tigermain_framesize(%rsp), t263
+movq $-8, t264
+movq t263, t265
+addq t264, t265
+movq (t265), t262
+movq t262, %rdi
+movq $0, t266
+movq t266, %rsi
+callq init_array
+movq %rax, t267
+movq t267, t116
+movq t116, (t254)
+leaq tigermain_framesize(%rsp), t268
+movq t268, %rdi
+callq try
+movq %rax, t269
+jmp L19
+L19:

@@ -23,7 +23,7 @@ void CodeGen::Codegen() {
   for(auto stm:stm_list){
     stm->Munch(*instr_list,fs_);
   }
-  // instr_list = frame::ProcEntryExit2(instr_list);//TODO
+  instr_list = frame::ProcEntryExit2(instr_list);
   assem_instr_ = std::make_unique<AssemInstr>(instr_list);
 }
 
@@ -75,7 +75,7 @@ void CjumpStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
     case GE_OP: str = "jge"; break;
   }
   str = str + " " + true_label_->Name();
-  instr_list.Append(new assem::OperInstr(str,NULL,src,new assem::Targets(new std::vector<temp::Label *>{true_label_,false_label_})));
+  instr_list.Append(new assem::OperInstr(str,NULL,NULL,new assem::Targets(new std::vector<temp::Label *>{true_label_,false_label_})));
 
 }
 
@@ -84,12 +84,11 @@ void MoveStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
   if(typeid(*dst_)==typeid(MemExp)){
     temp::Temp *dst_temp = (static_cast<MemExp *>(dst_))->exp_->Munch(instr_list,fs);
     temp::Temp *src_temp = src_->Munch(instr_list,fs);
-    std::string str = "movq `s0, (`d0)";
+    std::string str = "movq `s0, (`s1)";
     temp::TempList *src = new temp::TempList();
-    temp::TempList *dst = new temp::TempList();
     src->Append(src_temp);
-    dst->Append(dst_temp);
-    instr_list.Append(new assem::MoveInstr(str,dst,src));
+    src->Append(dst_temp);
+    instr_list.Append(new assem::MoveInstr(str,NULL,src));
   }
   else{
     temp::Temp *dst_temp = dst_->Munch(instr_list,fs);
@@ -145,7 +144,7 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
     temp::Temp *rdx = reg_manager->ArgRegs()->NthTemp(2);
     instr_list.Append(new assem::MoveInstr("movq `s0, `d0", new temp::TempList(reg_manager->ReturnValue()), new temp::TempList(left_temp)));
     instr_list.Append(new assem::OperInstr("cqto", new temp::TempList({rdx, reg_manager->ReturnValue()}), new temp::TempList(reg_manager->ReturnValue()), NULL));
-    instr_list.Append(new assem::OperInstr("idivq `s0", new temp::TempList({rdx, reg_manager->ReturnValue()}), new temp::TempList(right_temp), NULL));
+    instr_list.Append(new assem::OperInstr("idivq `s1", new temp::TempList({rdx, reg_manager->ReturnValue()}), new temp::TempList({reg_manager->ReturnValue(),right_temp}), NULL));
     instr_list.Append(new assem::MoveInstr("movq `s0, `d0", new temp::TempList(r), new temp::TempList(reg_manager->ReturnValue())));
     return r;
   }
@@ -213,9 +212,9 @@ temp::Temp *ConstExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
 
 temp::Temp *CallExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
   /* TODO: Put your lab5 code here */
-  args_->MunchArgs(instr_list,fs);
+  temp::TempList *used_list = args_->MunchArgs(instr_list,fs);
   std::string str = "callq " + static_cast<NameExp *>(fun_)->name_->Name();
-  instr_list.Append(new assem::OperInstr(str,reg_manager->CallerSaves(),reg_manager->ArgRegs(),NULL));
+  instr_list.Append(new assem::OperInstr(str,reg_manager->CallerSaves()->Union(reg_manager->ReturnSink()),used_list,NULL));
   temp::Temp *t = temp::TempFactory::NewTemp();
   temp::TempList *dst = new temp::TempList();
   dst->Append(t);
@@ -251,6 +250,7 @@ temp::TempList *ExpList::MunchArgs(assem::InstrList &instr_list, std::string_vie
     }
     i++;
   }
+  return used_list;
   
 }
 
