@@ -315,7 +315,7 @@ namespace ra {
 
     void RegAllocator::SelectSpill()
     {
-        printf("SelectSpill\n");
+        // printf("SelectSpill\n");
         live::INodePtr node = NULL;
         double max_p = 0;
         for(auto n: spill_worklist_->GetList()){
@@ -325,6 +325,7 @@ namespace ra {
                 node = n;
             }
         }
+        printf("SelectSpill temp %d\n",node->NodeInfo()->Int());
         assert(node != NULL);
         spill_worklist_->DeleteNode(node);
         simplify_worklist_->Unique_Append(node);
@@ -346,37 +347,50 @@ namespace ra {
             bool *ok_map = new bool[K];
             int num = 0;
             for(int i = 0; i < K; i++) ok_map[i] = false;
-            if(node->NodeInfo()->Int() == 255){
-                printf("here\n");
-                for(auto w: node->Adj()->GetList()){
-                    printf("temp %d ",w->NodeInfo()->Int());
-                }
-            }
+            // if(node->NodeInfo()->Int() == 255){
+            //     printf("here\n");
+            //     for(auto w: node->Adj()->GetList()){
+            //         printf("temp %d ",w->NodeInfo()->Int());
+            //     }
+            // }
             for(auto w: node->Adj()->GetList()){
                 live::INodePtr n = GetAlias(w);
                 if(colored_nodes_->Contain(n) || precolored_->Contain(n)){
                     ok_map[color_[n]] = true;
-                    num++;
-                }
-                if(node->NodeInfo()->Int() == 255){
-                    printf("temp %d ",w->NodeInfo()->Int());
                 }
             }
-            // printf("\n");
-            if(num >= K){
+            bool find = false;
+            for(int i = 0; i < K; i++){
+                if(ok_map[i] == false){
+                    if(!colored_nodes_->Contain(node))
+                        printf("temp %d contained in colored\n",node->NodeInfo()->Int());
+                    // assert(!colored_nodes_->Contain(node),stderr,"temp %d\n",node->NodeInfo()->Int());
+                    colored_nodes_->Unique_Append(node);
+                    color_[node] = i;
+                    find = true;
+                    break;
+                }
+            }
+            if(find == false){
+                
                 assert(!spilled_nodes_->Contain(node));
                 spilled_nodes_->Append(node);
             }
-            else{
-                for(int i = 0; i < K; i++){
-                    if(ok_map[i] == false){
-                        assert(!colored_nodes_->Contain(node));
-                        colored_nodes_->Unique_Append(node);
-                        color_[node] = i;
-                        break;
-                    }
-                }
-            }
+            // printf("\n");
+            // if(num >= K-1){
+            //     assert(!spilled_nodes_->Contain(node));
+            //     spilled_nodes_->Append(node);
+            // }
+            // else{
+            //     for(int i = 0; i < K-1; i++){
+            //         if(ok_map[i] == false){
+            //             assert(!colored_nodes_->Contain(node));
+            //             colored_nodes_->Unique_Append(node);
+            //             color_[node] = i;
+            //             break;
+            //         }
+            //     }
+            // }
             
             delete ok_map;
             
@@ -399,7 +413,7 @@ namespace ra {
                     temp::Temp *new_temp = temp::TempFactory::NewTemp();
                     std::string num = std::to_string(-frame_->s_offset - WORD_SIZE);
                     std::string s = "movq (" + frame_->frame_size_->Name() + "-" + num + ")" + "(`s0), `d0";
-                    assem::Instr *res = new assem::MoveInstr(s,new temp::TempList(n->NodeInfo()),new temp::TempList(reg_manager->StackPointer()));
+                    assem::Instr *res = new assem::MoveInstr(s,new temp::TempList(new_temp),new temp::TempList(reg_manager->StackPointer()));
                     assem_instr_.get()->GetInstrList()->Insert(it,res);
                     instr->Use()->Repalce(n->NodeInfo(),new_temp);
                     it++;
@@ -410,7 +424,7 @@ namespace ra {
                     temp::Temp *new_temp = temp::TempFactory::NewTemp();
                     std::string num = std::to_string(-frame_->s_offset - WORD_SIZE);
                     std::string s = "movq `s0, (" + frame_->frame_size_->Name() + "-" + num + ")(%rsp)";
-                    assem::Instr *res = new assem::MoveInstr(s,new temp::TempList(reg_manager->StackPointer()),new temp::TempList({new_temp}));
+                    assem::Instr *res = new assem::MoveInstr(s,NULL,new temp::TempList({new_temp,reg_manager->StackPointer()}));
                     assem_instr_.get()->GetInstrList()->Insert(it,res);
                     instr->Def()->Repalce(n->NodeInfo(),new_temp);
                 }

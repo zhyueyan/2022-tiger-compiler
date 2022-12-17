@@ -152,8 +152,10 @@ void LiveGraphFactory::InterfGraph() {
       for(auto live_temp:live->GetList()) {
         INodePtr def_node = temp_node_map_->Look(def_temp);
         INodePtr live_node = temp_node_map_->Look(live_temp);
-        live_graph_.interf_graph->AddEdge(def_node,live_node);
-        printf("temp %d ====> temp %d\n",def_temp->Int(),live_temp->Int());
+        if(def_node->NodeInfo()->Int() != reg_manager->StackPointer()->Int() && live_node->NodeInfo()->Int() != reg_manager->StackPointer()->Int()){
+          live_graph_.interf_graph->AddEdge(def_node,live_node);
+          printf("temp %d ====> temp %d\n",def_temp->Int(),live_temp->Int());
+        }
       }
   }
   
