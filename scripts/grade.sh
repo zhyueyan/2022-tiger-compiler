@@ -229,13 +229,18 @@ test_lab6() {
   local testcase_name
   local mergecase_name
 
-  # build tiger-compiler
+  build tiger-compiler
   for testcase in "$testcase_dir"/*.tig; do
     testcase_name=$(basename "$testcase" | cut -f1 -d".")
+    # testcase_name=$(basename "prime" | cut -f1 -d".")
+    # local ref=${ref_dir}/prime.out
+    # local assem=prime.s
     local ref=${ref_dir}/${testcase_name}.out
     local assem=$testcase.s
 
-    ./build/tiger-compiler "$testcase" &>/dev/null
+    ./tiger-compiler "$testcase" &>/dev/null
+
+    # ./build/tiger-compiler "$testcase" &>/dev/null
     gcc -Wl,--wrap,getchar -m64 "$assem" "$runtime_path" -o test.out &>/dev/null
     if [ ! -s test.out ]; then
       echo "Error: Link error [$testcase_name]"
