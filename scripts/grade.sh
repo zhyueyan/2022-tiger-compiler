@@ -5,7 +5,7 @@ WORKDIR=$(dirname "$(dirname "$(readlink -f "$0")")")
 build() {
   build_target=$1
   # echo "$build_target"
-  cd "$WORKDIR" && mkdir -p build && cd build && cmake -DCMAKE_BUILD_TYPE=Release .. >/dev/null && make "$build_target" -j >/dev/null
+  cd "$WORKDIR" && mkdir -p build && cd build && cmake -DCMAKE_BUILD_TYPE=Release .. >/dev/null && make "$build_target" -j
   if [[ $? != 0 ]]; then
     echo "Error: Compile error, try to run make build and debug"
     exit 1

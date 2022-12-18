@@ -86,7 +86,7 @@ void LiveGraphFactory::LiveMap() {
       temp::TempList *node_out_new = new temp::TempList();
       // printf("succ nodes:");
       for(auto succ_node: (*node)->Succ()->GetList()){
-        printf("%s ",succ_node->NodeInfo()->to_string().c_str());
+        // printf("%s ",succ_node->NodeInfo()->to_string().c_str());
         node_out_new = node_out_new->Union(in_.get()->Look(succ_node));
       }
       // printf("\n");
@@ -118,17 +118,24 @@ void LiveGraphFactory::LiveMap() {
 void LiveGraphFactory::InterfGraph() {
   /* TODO: Put your lab6 code here */
   // intialize the node in interf graph
-  for(auto flow_node: flowgraph_->Nodes()->GetList()){
-    for(auto def_temp: flow_node->NodeInfo()->Def()->GetList()){
-      temp_node_map_->Enter(def_temp,live_graph_.interf_graph->NewNode(def_temp));
-    }
-    for(auto use_temp: flow_node->NodeInfo()->Use()->GetList()){
-      temp_node_map_->Enter(use_temp,live_graph_.interf_graph->NewNode(use_temp));
-    }
-  }
   for(auto reg_temp: reg_manager->Registers()->GetList()){
     INodePtr node = live_graph_.interf_graph->NewNode(reg_temp);
     temp_node_map_->Enter(reg_temp,node);
+  }
+  for(auto flow_node: flowgraph_->Nodes()->GetList()){
+    for(auto def_temp: flow_node->NodeInfo()->Def()->GetList()){
+      if (temp_node_map_->Look(def_temp) == NULL)
+        temp_node_map_->Enter(def_temp,live_graph_.interf_graph->NewNode(def_temp));
+    }
+    for(auto use_temp: flow_node->NodeInfo()->Use()->GetList()){
+      if (temp_node_map_->Look(use_temp) == NULL)
+        temp_node_map_->Enter(use_temp,live_graph_.interf_graph->NewNode(use_temp));
+    }
+  }
+
+  printf("== validate unique ==\n");
+  for(auto node: live_graph_.interf_graph->Nodes()->GetList()){
+    printf("temp %d // ",node->NodeInfo()->Int());
   }
 
   // build the interference graph
@@ -141,7 +148,7 @@ void LiveGraphFactory::InterfGraph() {
       temp::TempList *dst = node->NodeInfo()->Def();
       temp::TempList *src = node->NodeInfo()->Use();
       if(dst->GetList().size() == 1 && src->GetList().size() == 1)
-        live_graph_.moves->Append(temp_node_map_->Look(src->GetList().front()),temp_node_map_->Look(dst->GetList().front())); //temp_node_map什么时候enter的
+        live_graph_.moves->Unique_Append(temp_node_map_->Look(src->GetList().front()),temp_node_map_->Look(dst->GetList().front())); //temp_node_map什么时候enter的
     }
     live = live->Union(node->NodeInfo()->Def());
     // for(auto t:live->GetList()){

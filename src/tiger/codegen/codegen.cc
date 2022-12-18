@@ -131,12 +131,13 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
     return r;
   }
   else if(op_ == tree::BinOp::MUL_OP){
+    temp::Temp *rdx = reg_manager->ArgRegs()->NthTemp(2);
     temp::TempList *src = new temp::TempList(); 
     temp::TempList *dst = new temp::TempList();
     instr_list.Append(new assem::MoveInstr("movq `s0, `d0", new temp::TempList(reg_manager->ReturnValue()), new temp::TempList(left_temp)));
     src->Append(reg_manager->ReturnValue());
     src->Append(right_temp);
-    instr_list.Append(new assem::OperInstr("imulq `s1", new temp::TempList(reg_manager->ReturnValue()), src, NULL));
+    instr_list.Append(new assem::OperInstr("imulq `s1", new temp::TempList({reg_manager->ReturnValue(),rdx}), src, NULL));
     instr_list.Append(new assem::MoveInstr("movq `s0, `d0", new temp::TempList(r), new temp::TempList(reg_manager->ReturnValue())));
     return r;
   }

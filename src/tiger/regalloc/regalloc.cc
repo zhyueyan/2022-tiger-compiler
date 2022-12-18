@@ -42,7 +42,7 @@ namespace ra {
         /* INIT */
         worklist_moves_ = live_graph_fac_->GetLiveGraph().moves;
         for(auto reg_temp:reg_manager->Registers()->GetList()){
-            precolored_->Append(live_graph_fac_->GetTempNodeMap()->Look(reg_temp));
+            precolored_->Unique_Append(live_graph_fac_->GetTempNodeMap()->Look(reg_temp));
         }
         // Init();
         MakeWorkList();
@@ -64,9 +64,6 @@ namespace ra {
             RewriteProgram(); //put spilled nodes on stack
             Init();
             RegAlloc();
-        }
-        else{
-
         }
     }
 
@@ -210,11 +207,10 @@ namespace ra {
         live::INodePtr x;
         live::INodePtr y;
         // printf("Coalesce\n");
+        // printf("Coalesce temp %d temp %d\n",move_para.first->NodeInfo()->Int(),move_para.second->NodeInfo()->Int());
+        x = GetAlias(move_para.first);
+        y = GetAlias(move_para.second);
         if(precolored_->Contain(y)){
-            x = GetAlias(move_para.first);
-            y = GetAlias(move_para.second);
-        }
-        else {
             y = GetAlias(move_para.first);
             x = GetAlias(move_para.second);
         }
@@ -233,6 +229,7 @@ namespace ra {
             coalesced_moves_->Unique_Append(move_para.first,move_para.second);
             Combine(x,y);
             AddWorklist(x);
+            printf("Coalesce temp %d temp %d\n",x->NodeInfo()->Int(),y->NodeInfo()->Int());
         } 
         else {
             active_moves_->Unique_Append(move_para.first,move_para.second);
@@ -339,11 +336,12 @@ namespace ra {
         int i = 0;
         for(auto node: precolored_->GetList()){
             color_[node] = i++;
-            // printf("temp %d color: %d\n",node->NodeInfo()->Int(),i-1);
+            printf("temp %d color: %d\n",node->NodeInfo()->Int(),i-1);
         }
         while(!select_stack_->GetList().empty()){
             live::INodePtr node = select_stack_->GetList().front();
             select_stack_->DeleteNode(node);
+            if(precolored_->Contain(node)) continue;
             bool *ok_map = new bool[K];
             int num = 0;
             for(int i = 0; i < K; i++) ok_map[i] = false;
@@ -362,11 +360,12 @@ namespace ra {
             bool find = false;
             for(int i = 0; i < K; i++){
                 if(ok_map[i] == false){
-                    if(!colored_nodes_->Contain(node))
+                    if(colored_nodes_->Contain(node))
                         printf("temp %d contained in colored\n",node->NodeInfo()->Int());
                     // assert(!colored_nodes_->Contain(node),stderr,"temp %d\n",node->NodeInfo()->Int());
                     colored_nodes_->Unique_Append(node);
                     color_[node] = i;
+                    printf("temp %d color: %d\n",node->NodeInfo()->Int(),i);
                     find = true;
                     break;
                 }
@@ -395,9 +394,19 @@ namespace ra {
             delete ok_map;
             
         }
-        for(auto n:coalesced_nodes_->GetList()){
-            color_[n] = color_[GetAlias(n)];
+        if(spilled_nodes_->GetList().empty()){
+            for(auto n:coalesced_nodes_->GetList()){
+                color_[n] = color_[GetAlias(n)];
+            }
         }
+        else{
+            printf("spilled nodes\n");
+            for(auto node: spilled_nodes_->GetList()){
+                printf("temp %d // ",node->NodeInfo()->Int());
+            }
+            printf("\n");
+        }
+        
     }
 
     void RegAllocator::RewriteProgram()
@@ -412,20 +421,19 @@ namespace ra {
                 if(instr->Use()->Contain(n->NodeInfo())){
                     temp::Temp *new_temp = temp::TempFactory::NewTemp();
                     std::string num = std::to_string(-frame_->s_offset - WORD_SIZE);
-                    std::string s = "movq (" + frame_->frame_size_->Name() + "-" + num + ")" + "(`s0), `d0";
-                    assem::Instr *res = new assem::MoveInstr(s,new temp::TempList(new_temp),new temp::TempList(reg_manager->StackPointer()));
+                    std::string s = "movq (" + frame_->frame_size_->Name() + "-" + num + ")" + "(%rsp), `d0";
+                    assem::Instr *res = new assem::MoveInstr(s,new temp::TempList(new_temp),NULL);
                     assem_instr_.get()->GetInstrList()->Insert(it,res);
                     instr->Use()->Repalce(n->NodeInfo(),new_temp);
-                    it++;
-                    if(it == assem_instr_.get()->GetInstrList()->GetList().cend()) break;
                 }
                 if(instr->Def()->Contain(n->NodeInfo())){
                     it++;
                     temp::Temp *new_temp = temp::TempFactory::NewTemp();
                     std::string num = std::to_string(-frame_->s_offset - WORD_SIZE);
                     std::string s = "movq `s0, (" + frame_->frame_size_->Name() + "-" + num + ")(%rsp)";
-                    assem::Instr *res = new assem::MoveInstr(s,NULL,new temp::TempList({new_temp,reg_manager->StackPointer()}));
+                    assem::Instr *res = new assem::MoveInstr(s,NULL,new temp::TempList({new_temp}));
                     assem_instr_.get()->GetInstrList()->Insert(it,res);
+                    it--;
                     instr->Def()->Repalce(n->NodeInfo(),new_temp);
                 }
             }
