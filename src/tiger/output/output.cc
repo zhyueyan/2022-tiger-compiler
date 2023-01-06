@@ -36,7 +36,7 @@ void ProcFrag::OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const {
   // When generating proc fragment, do not output string assembly
   if (phase != Proc)
     return;
-
+  TigerLog(frame_->GetLabel()+"\n");
   TigerLog("-------====IR tree=====-----\n");
   TigerLog(body_);
 
@@ -86,7 +86,7 @@ void ProcFrag::OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const {
   }
 
   TigerLog("-------====Output assembly for %s=====-----\n",
-           frame_->name_->Name().data());
+           frame_->GetLabel());
 
   assem::Proc *proc = frame::ProcEntryExit3(frame_, il);
   

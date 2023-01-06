@@ -105,6 +105,7 @@ public:
   void Clear() { node_list_.clear(); }
   void Prepend(Node<T> *n) { node_list_.push_front(n); }
   void Append(Node<T> *n) { node_list_.push_back(n); }
+  void Unique_Append(Node<T> *n) { if(!Contain(n)) node_list_.push_back(n); }
 
   // Set operation on two lists
   NodeList<T> *Union(NodeList<T> *nl);
@@ -146,7 +147,7 @@ template <typename T> void Graph<T>::AddEdge(Node<T> *from, Node<T> *to) {
   assert(to);
   assert(from->my_graph_ == this);
   assert(to->my_graph_ == this);
-  if (from->GoesTo(to))
+  if (from->GoesTo(to) || from == to)
     return;
   to->preds_->node_list_.push_back(from);
   from->succs_->node_list_.push_back(to);
@@ -167,13 +168,16 @@ template <typename T> int Node<T>::OutDegree() {
   return succs_->node_list_.size();
 }
 
-template <typename T> int Node<T>::Degree() { return InDegree() + OutDegree(); }
+template <typename T> int Node<T>::Degree() { return preds_->Union(succs_)->GetList().size(); }
 
 template <typename T> NodeList<T> *Node<T>::Adj() {
-  NodeList<T> *adj_list = new NodeList<T>();
-  adj_list->CatList(succs_);
-  adj_list->CatList(preds_);
-  return adj_list;
+  // NodeList<T> *adj_list = new NodeList<T>();
+  // adj_list->CatList(succs_);
+  // adj_list->CatList(preds_);
+  // adj_list->Union(succs_);
+  // adj_list->Union(preds_);
+  // return adj_list;
+  return succs_->Union(preds_);
 }
 
 template <typename T> NodeList<T> *Node<T>::Succ() { return succs_; }

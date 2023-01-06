@@ -67,7 +67,10 @@ public:
   void Append(Temp *t) { temp_list_.push_back(t); }
   [[nodiscard]] Temp *NthTemp(int i) const;
   [[nodiscard]] const std::list<Temp *> &GetList() const { return temp_list_; }
-
+  TempList *Union(TempList *b);
+  TempList *Differ(TempList *b);
+  bool Contain(temp::Temp *t);
+  void Repalce(temp::Temp *old_, temp::Temp *new_);
 private:
   std::list<Temp *> temp_list_;
 };

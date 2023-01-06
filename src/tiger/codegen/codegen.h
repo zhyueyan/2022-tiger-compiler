@@ -6,6 +6,7 @@
 #include "tiger/frame/x64frame.h"
 #include "tiger/translate/tree.h"
 
+
 // Forward Declarations
 namespace frame {
 class RegManager;
@@ -40,7 +41,9 @@ private:
 class CodeGen {
 public:
   CodeGen(frame::Frame *frame, std::unique_ptr<canon::Traces> traces)
-      : frame_(frame), traces_(std::move(traces)) {}
+      : frame_(frame), traces_(std::move(traces)) {
+        fs_ = frame->frame_size_->Name();
+      }
 
   void Codegen();
   std::unique_ptr<AssemInstr> TransferAssemInstr() {

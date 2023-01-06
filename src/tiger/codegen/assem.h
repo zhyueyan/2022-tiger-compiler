@@ -19,7 +19,7 @@ public:
 class Instr {
 public:
   virtual ~Instr() = default;
-
+  virtual std::string to_string() = 0;
   virtual void Print(FILE *out, temp::Map *m) const = 0;
   [[nodiscard]] virtual temp::TempList *Def() const = 0;
   [[nodiscard]] virtual temp::TempList *Use() const = 0;
@@ -27,6 +27,7 @@ public:
 
 class OperInstr : public Instr {
 public:
+  std::string to_string() { return assem_;}
   std::string assem_;
   temp::TempList *dst_, *src_;
   Targets *jumps_;
@@ -42,6 +43,7 @@ public:
 
 class LabelInstr : public Instr {
 public:
+  std::string to_string() { return assem_;}
   std::string assem_;
   temp::Label *label_;
 
@@ -55,6 +57,7 @@ public:
 
 class MoveInstr : public Instr {
 public:
+  std::string to_string() { return assem_;}
   std::string assem_;
   temp::TempList *dst_, *src_;
 

@@ -89,8 +89,17 @@ void CjumpStm::Print(FILE *out, int d) const {
   right_->Print(out, d + 1);
   fprintf(out, ",\n");
   Indent(out, d + 1);
-  fprintf(out, "%s,", true_label_->Name().data());
-  fprintf(out, "%s", false_label_->Name().data());
+  if(true_label_){
+    fprintf(out, "%s,", true_label_->Name().data());
+  }
+  else fprintf(out, "%s,", "null");
+  if(false_label_){
+    fprintf(out, "%s,", false_label_->Name().data());
+  }
+  else{
+    fprintf(out, "%s,", "null");
+  }
+  
   fprintf(out, ")");
 }
 
