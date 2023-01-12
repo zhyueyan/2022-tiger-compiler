@@ -295,14 +295,14 @@ test_lab7() {
   local full_score=1
   local testcase_name
 
-  build tiger-compiler
+  # build tiger-compiler
   for testcase in "$testcase_dir"/*.tig; do
     testcase_name=$(basename "$testcase" | cut -f1 -d".")
     local ref=${ref_dir}/${testcase_name}.out
     local assem=$testcase.s
 
-    ./tiger-compiler "$testcase" &>/dev/null
-    g++ -Wl,--wrap,getchar -m64 "$assem" "$runtime_path" "$heap_path" -o test.out &>/dev/null
+    ./build/tiger-compiler "$testcase" &>/dev/null
+    g++ -Wl,--wrap,getchar -m64 "$assem" "$runtime_path" "$heap_path" -o test.out #&>/dev/null
     if [ ! -s test.out ]; then
       echo "Error: Link error [$testcase_name]"
       full_score=0

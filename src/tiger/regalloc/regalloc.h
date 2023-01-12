@@ -37,12 +37,15 @@ class RegAllocator {
     RegAllocator(frame::Frame *frame, std::unique_ptr<cg::AssemInstr> assem_instr);
     void RegAlloc();
     std::unique_ptr<Result> TransferResult();
+
+    live::LiveGraphFactory *live_graph_fac_; //表示指令与指令之间的执行顺序关系
+    fg::FlowGraphFactory *flow_graph_fac_; //表示变量的同时活跃
   private:
     frame::Frame *frame_;
     std::unique_ptr<cg::AssemInstr> assem_instr_;
 
-    live::LiveGraphFactory *live_graph_fac_; //表示指令与指令之间的执行顺序关系
-    fg::FlowGraphFactory *flow_graph_fac_; //表示变量的同时活跃
+    // live::LiveGraphFactory *live_graph_fac_; //表示指令与指令之间的执行顺序关系
+    // fg::FlowGraphFactory *flow_graph_fac_; //表示变量的同时活跃
 
     live::INodeList *precolored_; //TO INIT INIT in RegAlloc
 

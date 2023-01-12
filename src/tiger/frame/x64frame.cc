@@ -66,41 +66,23 @@ temp::Temp *X64RegManager::ReturnValue() {
 }
 
 
-class InFrameAccess : public Access {
-public:
-  int offset;
-  explicit InFrameAccess(int offset) : offset(offset) {}
-  tree::Exp *ToExp(tree::Exp *framePtr) const {
-    tree::Exp *pos = new tree::BinopExp(tree::BinOp::PLUS_OP, framePtr, new tree::ConstExp(offset));
-    return new tree::MemExp(pos);
-  }
-  
-  /* TODO: Put your lab5 code here */
-};
 
-
-class InRegAccess : public Access {
-public:
-  temp::Temp *reg;
-
-  explicit InRegAccess(temp::Temp *reg) : reg(reg) {}
-  tree::Exp *ToExp(tree::Exp *framePtr) const {
-    return new tree::TempExp(reg);
-   }
-  /* TODO: Put your lab5 code here */
-};
 
 /* TODO: Put your lab5 code here */
-Access* X64Frame::AllocLocal(bool escape) {
+Access* X64Frame::AllocLocal(bool escape, bool is_pointer) {
+  Access *access = NULL;
   if(escape){
-    Access *access = new InFrameAccess(s_offset);
+    access = new InFrameAccess(s_offset,is_pointer);
     s_offset -= WORD_SIZE;
-    return access;
   }
   else{
-    Access *access = new InRegAccess(temp::TempFactory::NewTemp());
-    return access;
+    temp::Temp *t = temp::TempFactory::NewTemp(is_pointer);
+    access = new InRegAccess(t,is_pointer);
+    if(is_pointer == 1)
+      printf("t%d: is_pointer: %d",t->Int(),t->is_pointer);
   }
+  locals_->push_back(access);
+  return access;
 }
 std::string X64Frame::GetLabel() const {
   return label->Name();
@@ -112,7 +94,7 @@ tree::Stm *procEntryExit1(Frame* frame, tree::Exp* body) {
   tree::Stm *restore = new tree::ExpStm(new tree::ConstExp(0));
   temp::TempList *callee_save = reg_manager->CalleeSaves();
   for(int i = 0 ; i < callee_save->GetList().size(); i++){
-    temp::Temp *new_temp = temp::TempFactory::NewTemp();
+    temp::Temp *new_temp = temp::TempFactory::NewTemp(false);
     stm = new tree::SeqStm(stm,new tree::MoveStm(new tree::TempExp(new_temp),new tree::TempExp(callee_save->NthTemp(i))));
     restore = new tree::SeqStm(restore,new tree::MoveStm(new tree::TempExp(callee_save->NthTemp(i)),new tree::TempExp(new_temp)));
     
@@ -162,9 +144,9 @@ assem::Proc *ProcEntryExit3(Frame *frame, assem::InstrList *body){
   epilog.append("retq\n");
   return new assem::Proc(prolog,body,epilog);
 }
-Frame *NewFrame(temp::Label *name, std::list<bool> formals)
+Frame *NewFrame(temp::Label *name, std::list<bool> formals, std::list<bool> pointers)
 {
-  return new X64Frame(name,formals);
+  return new X64Frame(name,formals,pointers);
 }
 tree::Exp *ExternalCall(std::string s, tree::ExpList *args) {
   return new tree::CallExp(new tree::NameExp(temp::LabelFactory::NamedLabel(s)),args);

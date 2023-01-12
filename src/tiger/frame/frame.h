@@ -75,6 +75,8 @@ public:
   /* TODO: Put your lab5 code here */
   virtual tree::Exp *ToExp(tree::Exp *framePtr) const = 0;
   virtual ~Access() = default;
+  Access(bool p):is_pointer(p){}
+  bool is_pointer;
   
 };
 
@@ -82,6 +84,7 @@ class Frame {
   /* TODO: Put your lab5 code here */
   public:
     std::list<frame::Access *> *formals_; //传进来的参数列表
+    std::list<frame::Access *> *locals_; //for GC, 当前栈帧所有的变量
     int s_offset;
     int max_args;
     temp::Label *frame_size_;
@@ -91,7 +94,7 @@ class Frame {
     
   public:
     Frame(temp::Label* name, std::list<bool> escapes) : label(name) {};
-    virtual Access* AllocLocal(bool escape) = 0; //创建函数体内局部变量
+    virtual Access* AllocLocal(bool escape, bool is_pointer) = 0; //创建函数体内局部变量
     virtual std::string GetLabel() const = 0;
     // virtual tree::Exp *FrameAddress() const = 0; //通过栈指针获得frame位置
     
@@ -154,7 +157,7 @@ tree::Exp *ExternalCall(std::string s, tree::ExpList *args);
 tree::Stm *procEntryExit1(Frame* frame, tree::Exp* body);
 assem::InstrList *ProcEntryExit2(assem::InstrList *body);
 assem::Proc *ProcEntryExit3(Frame *frame, assem::InstrList *body);
-Frame *NewFrame(temp::Label *name, std::list<bool> formals);
+Frame *NewFrame(temp::Label *name, std::list<bool> formals, std::list<bool> pointers);
 
 } // namespace frame
 

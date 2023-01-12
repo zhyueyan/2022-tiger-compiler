@@ -98,6 +98,8 @@ void MoveStm::Munch(assem::InstrList &instr_list, std::string_view fs) {
     temp::TempList *dst = new temp::TempList();
     src->Append(src_temp);
     dst->Append(dst_temp);
+    /* For GC: convey the pointer */
+    // dst_temp->is_pointer = src_temp->is_pointer;
     instr_list.Append(new assem::MoveInstr(str,dst,src));
   }
   
@@ -113,7 +115,9 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
   /* TODO: Put your lab5 code here */
   temp::Temp *left_temp = left_->Munch(instr_list,fs);
   temp::Temp *right_temp = right_->Munch(instr_list,fs);
-  temp::Temp *r = temp::TempFactory::NewTemp();
+  /* For GC: convey the pointer */
+  bool r_pointer = left_temp->is_pointer | right_temp->is_pointer;
+  temp::Temp *r = temp::TempFactory::NewTemp(r_pointer);
   if(op_ == tree::BinOp::PLUS_OP || op_ == tree::BinOp::MINUS_OP){
     std::string str = "";
     switch(op_){
@@ -154,7 +158,7 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
 
 temp::Temp *MemExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
   /* TODO: Put your lab5 code here */
-  temp::Temp *t = temp::TempFactory::NewTemp();
+  temp::Temp *t = temp::TempFactory::NewTemp(false);
   temp::Temp *addr = exp_->Munch(instr_list,fs);
   std::string str = "movq (`s0), `d0";
   temp::TempList *src = new temp::TempList();
@@ -168,7 +172,7 @@ temp::Temp *MemExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
 temp::Temp *TempExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
   /* TODO: Put your lab5 code here */
   if(temp_ == reg_manager->FramePointer()){
-    temp::Temp *t = temp::TempFactory::NewTemp();
+    temp::Temp *t = temp::TempFactory::NewTemp(false);
     std::string fs_(fs);
     std::string str = "leaq " + fs_ + "(`s0), `d0";
     
@@ -193,7 +197,7 @@ temp::Temp *EseqExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
 
 temp::Temp *NameExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
   /* TODO: Put your lab5 code here */
-  temp::Temp *t = temp::TempFactory::NewTemp();
+  temp::Temp *t = temp::TempFactory::NewTemp(false);
   std::string str = "leaq " + name_->Name() + "(%rip), `d0"; //name只能存相对位置
   temp::TempList *dst = new temp::TempList();
   dst->Append(t);
@@ -203,7 +207,7 @@ temp::Temp *NameExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
 
 temp::Temp *ConstExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
   /* TODO: Put your lab5 code here */
-  temp::Temp *t = temp::TempFactory::NewTemp();
+  temp::Temp *t = temp::TempFactory::NewTemp(false);
   std::string str = "movq $" + std::to_string(consti_) + ", `d0";
   temp::TempList *dst = new temp::TempList();
   dst->Append(t);
@@ -216,13 +220,20 @@ temp::Temp *CallExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
   temp::TempList *used_list = args_->MunchArgs(instr_list,fs);
   std::string str = "callq " + static_cast<NameExp *>(fun_)->name_->Name();
   instr_list.Append(new assem::OperInstr(str,reg_manager->CallerSaves()->Union(reg_manager->ReturnSink()),used_list,NULL));
-  temp::Temp *t = temp::TempFactory::NewTemp();
+
+  /* For GC: ret address */
+  temp::Label *ret_addr = temp::LabelFactory::NewLabel();
+  instr_list.Append(new assem::LabelInstr(ret_addr->Name(),ret_addr));
+
+  /* ret value */
+  temp::Temp *t = temp::TempFactory::NewTemp(false);
   temp::TempList *dst = new temp::TempList();
   dst->Append(t);
   temp::TempList *src = new temp::TempList();
   src->Append(reg_manager->ReturnValue());
   instr_list.Append(new assem::MoveInstr("movq `s0, `d0",dst,src));
   return t;
+  
 }
 
 temp::TempList *ExpList::MunchArgs(assem::InstrList &instr_list, std::string_view fs) { //转换视角前

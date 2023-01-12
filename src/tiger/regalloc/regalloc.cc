@@ -133,6 +133,7 @@ namespace ra {
     void RegAllocator::MakeWorkList()
     {
         // int reg_num = reg_manager->Registers()->GetList().size();
+        printf("node pointer check\n");
         for(auto n: live_graph_fac_->GetLiveGraph().interf_graph->Nodes()->GetList()){
             if(precolored_->Contain(n)) continue; //colored register?
             if(n->Degree() >= K){
@@ -144,7 +145,9 @@ namespace ra {
             else {
                 simplify_worklist_->Append(n);
             }
+            printf("t%d: is pointer: %d ",n->NodeInfo()->Int(),n->NodeInfo()->is_pointer);
         }
+        printf("\n");
     }
 
     bool RegAllocator::MoveRelated(live::INodePtr node)
@@ -406,7 +409,7 @@ namespace ra {
             }
             printf("\n");
         }
-        
+        printf("end\n");
     }
 
     void RegAllocator::RewriteProgram()
@@ -414,12 +417,14 @@ namespace ra {
         printf("rewrite\n");
         int fs = -frame_->s_offset;
         for(auto n: spilled_nodes_->GetList()){
-            frame::Access *access = frame_->AllocLocal(true);
+            /* For GC: convey the pointer */
+            printf("offset: %d is_pointer: %d",frame_->s_offset,n->NodeInfo()->is_pointer);
+            frame::Access *access = frame_->AllocLocal(true,n->NodeInfo()->is_pointer);
             auto it = assem_instr_.get()->GetInstrList()->GetList().cbegin();
             for(auto it = assem_instr_.get()->GetInstrList()->GetList().cbegin(); it != assem_instr_.get()->GetInstrList()->GetList().cend(); it++){
                 assem::Instr *instr = *it;
                 if(instr->Use()->Contain(n->NodeInfo())){
-                    temp::Temp *new_temp = temp::TempFactory::NewTemp();
+                    temp::Temp *new_temp = temp::TempFactory::NewTemp(n->NodeInfo()->is_pointer);
                     std::string num = std::to_string(-frame_->s_offset - WORD_SIZE);
                     std::string s = "movq (" + frame_->frame_size_->Name() + "-" + num + ")" + "(%rsp), `d0";
                     assem::Instr *res = new assem::MoveInstr(s,new temp::TempList(new_temp),NULL);
@@ -428,7 +433,8 @@ namespace ra {
                 }
                 if(instr->Def()->Contain(n->NodeInfo())){
                     it++;
-                    temp::Temp *new_temp = temp::TempFactory::NewTemp();
+                    /* For GC: convey the pointer */
+                    temp::Temp *new_temp = temp::TempFactory::NewTemp(n->NodeInfo()->is_pointer);
                     std::string num = std::to_string(-frame_->s_offset - WORD_SIZE);
                     std::string s = "movq `s0, (" + frame_->frame_size_->Name() + "-" + num + ")(%rsp)";
                     assem::Instr *res = new assem::MoveInstr(s,NULL,new temp::TempList({new_temp}));

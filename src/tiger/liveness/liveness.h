@@ -68,14 +68,15 @@ public:
   std::map<live::INodePtr, int> *degree_;
   tab::Table<live::INode, live::INode> *alias_;
 
+  std::unique_ptr<graph::Table<assem::Instr, temp::TempList>> in_;
+  std::unique_ptr<graph::Table<assem::Instr, temp::TempList>> out_;
 private:
   fg::FGraphPtr flowgraph_;
   LiveGraph live_graph_;
   
   
 
-  std::unique_ptr<graph::Table<assem::Instr, temp::TempList>> in_;
-  std::unique_ptr<graph::Table<assem::Instr, temp::TempList>> out_;
+  
   tab::Table<temp::Temp, INode> *temp_node_map_;
 
  

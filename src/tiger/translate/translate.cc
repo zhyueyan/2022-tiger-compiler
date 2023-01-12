@@ -14,10 +14,10 @@ extern frame::RegManager *reg_manager;
 
 namespace tr {
 
-Access *Access::AllocLocal(Level *level, bool escape) {
+Access *Access::AllocLocal(Level *level, bool escape, bool is_pointer) {
   /* TODO: Put your lab5 code here */
   frame::Frame *frame = level->frame_;
-  frame::Access *acc = frame->AllocLocal(escape);
+  frame::Access *acc = frame->AllocLocal(escape,is_pointer);
   Access* access = new Access(level,acc);
   return access;
 }
@@ -107,7 +107,7 @@ public:
   
   [[nodiscard]] tree::Exp *UnEx() override {
     /* TODO: Put your lab5 code here */
-    temp::Temp *r = temp::TempFactory::NewTemp();
+    temp::Temp *r = temp::TempFactory::NewTemp(false);
     temp::Label *t = temp::LabelFactory::NewLabel();
     temp::Label *f = temp::LabelFactory::NewLabel();
     cx_.trues_.DoPatch(t);
@@ -130,8 +130,8 @@ public:
 void ProgTr::Translate() {
   /* TODO: Put your lab5 code here */
   std::list<bool> e;
-  
-  main_level_.get()->frame_ = new frame::X64Frame(temp::LabelFactory::NamedLabel("tigermain"),e);
+  std::list<bool> p;
+  main_level_.get()->frame_ = new frame::X64Frame(temp::LabelFactory::NamedLabel("tigermain"),e,p);
   main_level_.get()->parent_ = NULL;
   
   tr::ExpAndTy* et = absyn_tree_.get()->Translate(venv_.get(),tenv_.get(),main_level_.get(),temp::LabelFactory::NamedLabel("tigermain"),errormsg_.get());
@@ -465,10 +465,20 @@ tr::ExpAndTy *RecordExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   }
   /* alloc exp */
   tree::Stm *alloc;
-  temp::Temp *t = temp::TempFactory::NewTemp();
+  temp::Temp *t = temp::TempFactory::NewTemp(true);
   tree::Exp *temp_exp = new tree::TempExp(t);
   std::string call_name = "alloc_record";
-  tree::ExpList *args = new tree::ExpList({new tree::ConstExp(list.size() * WORD_SIZE)});
+  /* build pointer bitmap */
+  int bitmap = 0;
+  for(auto formal:formal_list){
+    if(typeid(*formal->ty_) == typeid(type::RecordTy) || typeid(*formal->ty_) == typeid(type::ArrayTy)){
+      bitmap = bitmap<<1 | 1;
+    }
+    else{
+      bitmap = bitmap<<1 | 0;
+    }
+  }
+  tree::ExpList *args = new tree::ExpList({new tree::ConstExp(bitmap),new tree::ConstExp(list.size() * WORD_SIZE)});
   alloc = new tree::MoveStm(temp_exp,frame::ExternalCall(call_name,args));
   
   auto it = list.rbegin();
@@ -606,7 +616,7 @@ tr::ExpAndTy *IfExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
       return new tr::ExpAndTy(new tr::NxExp(stm), type::VoidTy::Instance());                          
     }
     else{
-      tree::TempExp *temp = new tree::TempExp(temp::TempFactory::NewTemp());
+      tree::TempExp *temp = new tree::TempExp(temp::TempFactory::NewTemp(false));
       tree::Exp* exp = new tree::EseqExp(test_e.stm_, 
                         new tree::EseqExp(new tree::LabelStm(t), 
                           new tree::EseqExp(new tree::MoveStm(temp,then_et->exp_->UnEx()), 
@@ -745,7 +755,7 @@ tr::ExpAndTy *ArrayExp::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   }
 
   tree::ExpList *args = new tree::ExpList({s_et->exp_->UnEx(), i_et->exp_->UnEx()});
-  temp::Temp *t = temp::TempFactory::NewTemp();
+  temp::Temp *t = temp::TempFactory::NewTemp(true);
   tree::Exp *temp_exp = new tree::TempExp(t);
   tree::Stm *init_stm = new tree::MoveStm(temp_exp, frame::ExternalCall("init_array", args));
   tree::Exp *exp = new tree::EseqExp(init_stm, temp_exp);
@@ -782,12 +792,24 @@ tr::Exp *FunctionDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
     }
     type::TyList *formals_tylist = (*it)->params_->MakeFormalTyList(tenv,errormsg);
     std::list<bool> formals;
+    std::list<bool> pointers;
     formals.push_back(true);
+    pointers.push_back(false);
     for(auto i:(*it)->params_->GetList()){
       // printf("%d\n",i->escape_);
       formals.push_back(i->escape_);
     }
-    tr::Level *new_level = new tr::Level((*it)->name_,formals,level);
+    /* for GC, find pointers */
+    for(auto ty:(*it)->params_->MakeFormalTyList(tenv,errormsg)->GetList()){
+      if(typeid(*ty->ActualTy()) == typeid(type::RecordTy) || typeid(*ty->ActualTy()) == typeid(type::ArrayTy)){
+        pointers.push_back(true);
+      }
+      else{
+        pointers.push_back(false);
+      }
+    }
+    
+    tr::Level *new_level = new tr::Level((*it)->name_,formals,pointers,level);
     env::FunEntry *newFunc = new env::FunEntry(new_level,(*it)->name_,formals_tylist,returnType);
     venv->Enter((*it)->name_,newFunc);
   }
@@ -830,6 +852,9 @@ tr::Exp *VarDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
   tr::ExpAndTy *i_et = init_->Translate(venv,tenv,level,label,errormsg);
   tr::Exp *i_e = i_et->exp_;
   type::Ty *i_t = i_et->ty_;
+  bool is_pointer = false;
+  if(typeid(*i_t) == typeid(type::RecordTy) || typeid(*i_t) == typeid(type::ArrayTy))
+      is_pointer = true;
   if(typ_ == NULL) {
     if(typeid(*i_t) == typeid(type::NilTy)){
       errormsg->Error(init_->pos_, "init should not be nil without type specified");
@@ -847,7 +872,8 @@ tr::Exp *VarDec::Translate(env::VEnvPtr venv, env::TEnvPtr tenv,
       return new tr::NxExp(i_e->UnNx());
     }
   }
-  tr::Access *new_a = new tr::Access(level,level->frame_->AllocLocal(escape_));
+  printf("var %s: is_pointer %d is_escape: %d\n",var_->Name().data(),is_pointer,escape_);
+  tr::Access *new_a = new tr::Access(level,level->frame_->AllocLocal(escape_,is_pointer));
   env::VarEntry *newVar = new env::VarEntry(new_a,i_t);
   venv->Enter(var_,newVar);
   // printf("enter var %s\n",var_->Name().c_str());

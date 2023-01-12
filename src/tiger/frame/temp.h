@@ -25,15 +25,16 @@ class Temp {
 
 public:
   [[nodiscard]] int Int() const;
+  bool is_pointer;
 
 private:
   int num_;
-  explicit Temp(int num) : num_(num) {}
+  explicit Temp(int num, bool p) : num_(num), is_pointer(p) {}
 };
 
 class TempFactory {
 public:
-  static Temp *NewTemp();
+  static Temp *NewTemp(bool is_pointer);
 
 private:
   int temp_id_ = 100;

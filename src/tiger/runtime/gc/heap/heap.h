@@ -28,7 +28,7 @@ public:
    * @param size size of the space allocated, in bytes.
    * @return start address of allocated space, if fail, return nullptr.
    */
-  virtual char *Allocate(uint64_t size) = 0;
+  virtual char *Allocate(bool *type, uint64_t size) = 0;
 
   /**
    * Acquire the total allocated space from heap.
@@ -65,6 +65,8 @@ public:
   virtual void GC() = 0;
 
   static constexpr uint64_t WORD_SIZE = 8;
+
+  TigerHeap(){}
 };
 
 } // namespace gc

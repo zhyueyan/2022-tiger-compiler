@@ -48,7 +48,7 @@ public:
 
   Access(Level *level, frame::Access *access)
       : level_(level), access_(access) {}
-  static Access *AllocLocal(Level *level, bool escape);
+  static Access *AllocLocal(Level *level, bool escape, bool is_pointer);
 };
 
 class Level {
@@ -58,9 +58,9 @@ public:
 
   /* TODO: Put your lab5 code here */
   Level() : frame_(nullptr), parent_(nullptr) {}
-  Level(temp::Label* name, std::list<bool> formals, Level *parent){
+  Level(temp::Label* name, std::list<bool> formals, std::list<bool> pointers, Level *parent){
     parent_ = parent;
-    frame_ = frame::NewFrame(name,formals);
+    frame_ = frame::NewFrame(name,formals,pointers);
   }
 };
 

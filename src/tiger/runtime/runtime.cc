@@ -1,8 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <cassert>
 // Note: change to header file of your implemnted heap!
-#include "../runtime/gc/heap/heap.h"
+#include "../runtime/gc/heap/derived_heap.h"
 
 #ifndef EXTERNC
 #define EXTERNC extern "C" 
@@ -24,7 +25,7 @@ gc::TigerHeap *tiger_heap = nullptr;
 // Global interface & heap object to expose to runtime.c
 EXTERNC char *Alloc(uint64_t size) {
     CHECK_HEAP;
-    return tiger_heap->Allocate(size);
+    return tiger_heap->Allocate(NULL,size);
 };
 EXTERNC void GC(uint64_t size) {
     CHECK_HEAP;
@@ -44,10 +45,10 @@ EXTERNC uint64_t MaxFree() {
 EXTERNC long *init_array(int size, long init) {
   int i;
   uint64_t allocate_size = size * sizeof(long);
-  long *a = (long *)tiger_heap->Allocate(allocate_size);
+  long *a = (long *)tiger_heap->Allocate(NULL,allocate_size);
   if(!a) {
     tiger_heap->GC();
-    a = (long*)tiger_heap->Allocate(allocate_size);
+    a = (long*)tiger_heap->Allocate(NULL,allocate_size);
   }
   for (i = 0; i < size; i++) a[i] = init;
   return a;
@@ -58,13 +59,20 @@ struct string {
   unsigned char chars[1];
 };
 
-EXTERNC int *alloc_record(int size) {
+EXTERNC int *alloc_record(int bitmap,int size) {
   int i;
   int *p, *a;
-  p = a = (int *)tiger_heap->Allocate(size);
+  int len = size/8;
+  bool *map = new bool[len];
+  for(int i = len-1; i >= 0; i--){
+    map[i] = bitmap%2;
+    bitmap = bitmap/2;
+  }
+  assert(bitmap == 0);
+  p = a = (int *)tiger_heap->Allocate(map,size);
   if(!p) {
     tiger_heap->GC();
-    p = a = (int *)tiger_heap->Allocate(size);
+    p = a = (int *)tiger_heap->Allocate(map,size);
   }
   for (i = 0; i < size; i += sizeof(int)) *p++ = 0;
   return a;
@@ -99,7 +107,8 @@ int main() {
     consts[i].chars[0] = i;
   }
   // Change it to your own implementation after implement heap and delete the comment!
-  // tiger_heap = new gc::TigerHeap();
+  // fprintf(stderr, "Init\n");
+  tiger_heap = new gc::DerivedHeap();
   tiger_heap->Initialize(TIGER_HEAP_SIZE);
   return tigermain(0 /* static link */);
 }
