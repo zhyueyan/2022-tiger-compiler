@@ -1,6 +1,7 @@
 #pragma once
 
 #include "heap.h"
+#include "../roots/roots.h"
 #include <vector>
 
 namespace gc {
@@ -9,7 +10,7 @@ class HeapBlock {
   public:
    size_t size;
    int mark;
-   bool *pointermap;//show the pointer field
+   bool *pointermap;//show the pointer field: Null for Array
    char* heapPtr;
    HeapBlock* next;
    HeapBlock* prev;
@@ -26,6 +27,8 @@ class HeapBlockList {
    HeapBlockList(){listSize = 0; first = NULL;}
    void Insert(HeapBlock* b){
      b->next = first;
+     if(first)
+      first->prev = b;
      first = b;
      listSize++;
    }
@@ -37,7 +40,6 @@ class HeapBlockList {
        b->next->prev = b->prev;
      }
      listSize--;
-     delete b;
    }
 };
 
@@ -49,13 +51,18 @@ class DerivedHeap : public TigerHeap {
    int used;
    HeapBlockList* free_list;
    HeapBlockList* used_list;
+   std::vector<ReadedPointerMap> pointer_maps;
+   void Mark(HeapBlock *block);
   public:
-   DerivedHeap(){}
+   DerivedHeap(){
+    getPointerMap();
+   }
    char *Allocate(bool *type, uint64_t size);
    uint64_t Used() const;
    uint64_t MaxFree() const;
    void Initialize(uint64_t size);
    void GC();
+   void getPointerMap();
 
 };
 

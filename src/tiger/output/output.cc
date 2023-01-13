@@ -35,7 +35,7 @@ void AssemGen::GenAssem(bool need_ra) {
     fprintf(out_, ".quad %s\n",pt.nextPointerMapLabel.data());
     fprintf(out_,".quad %s\n",pt.returnAddressLabel.data());
     fprintf(out_,".quad %s\n",pt.frameSize.data());
-    fprintf(out_,".quad %s\n",pt.registerPointers.data());
+    fprintf(out_,".quad %d\n",pt.registerPointers);
     for(auto off: pt.offsets){
       fprintf(out_,".quad %d\n",off);
     }
@@ -96,7 +96,11 @@ void generatePointerMap(Frame *frame_, std::list<fg::FNodePtr> instr_list, tab::
       }
       for(int j = 0; j < 6; j++) printf("%d",reg_pointer[j]);
       printf("\n");
-      map_.registerPointers = (char*)reg_pointer;
+      uint64_t reg = 0;
+      for(int i = 0; i < 6; i++){
+        reg = reg*2 | reg_pointer[i];
+      }
+      map_.registerPointers = reg;
       if(global_map.empty()){
         global_map.push_back(map_);
       }
