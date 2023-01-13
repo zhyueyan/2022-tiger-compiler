@@ -121,7 +121,7 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
       case tree::BinOp::MINUS_OP: str = "subq `s1, `d0"; break;
       
     }
-    instr_list.Append(new assem::OperInstr("movq `s0, `d0",new temp::TempList({r}),new temp::TempList({left_temp}),NULL));
+    instr_list.Append(new assem::MoveInstr("movq `s0, `d0",new temp::TempList({r}),new temp::TempList({left_temp})));
     temp::TempList *src = new temp::TempList();
     src->Append(r);
     src->Append(right_temp);
@@ -215,7 +215,9 @@ temp::Temp *CallExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
   /* TODO: Put your lab5 code here */
   temp::TempList *used_list = args_->MunchArgs(instr_list,fs);
   std::string str = "callq " + static_cast<NameExp *>(fun_)->name_->Name();
-  instr_list.Append(new assem::OperInstr(str,reg_manager->CallerSaves()->Union(reg_manager->ReturnSink()),used_list,NULL));
+  temp::TempList *def_list = reg_manager->CallerSaves();
+  def_list->Append(reg_manager->ReturnValue());
+  instr_list.Append(new assem::OperInstr(str,def_list,used_list,NULL));
   temp::Temp *t = temp::TempFactory::NewTemp();
   temp::TempList *dst = new temp::TempList();
   dst->Append(t);
@@ -247,7 +249,7 @@ temp::TempList *ExpList::MunchArgs(assem::InstrList &instr_list, std::string_vie
       src->Append(reg_manager->StackPointer());
       int num = (i - list->GetList().size()) * WORD_SIZE;
       std::string str = "movq `s0, "+ std::to_string(num) + "(`s1)";
-      instr_list.Append(new assem::MoveInstr(str,NULL,src));
+      instr_list.Append(new assem::OperInstr(str,NULL,src,NULL));
     }
     i++;
   }

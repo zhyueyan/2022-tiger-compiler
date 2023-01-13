@@ -74,7 +74,13 @@ void ProcFrag::OutputAssem(FILE *out, OutputPhase phase, bool need_ra) const {
   }
 
   assem::InstrList *il = assem_instr.get()->GetInstrList();
-  
+  // for(auto instr: il->GetList()){
+  //   printf("%s\n",instr->to_string().c_str());
+  //   for(auto temp :instr->Def()->GetList()){
+  //     printf("temp %d",temp->Int());
+  //   }
+  //   printf("\n");
+  // }
   if (need_ra) {
     // Lab 6: register allocation
     TigerLog("----====Register allocate====-----\n");

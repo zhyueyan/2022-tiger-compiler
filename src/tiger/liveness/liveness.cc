@@ -63,6 +63,13 @@ MoveList *MoveList::MoveList_n(INodePtr reg) {
 
 void LiveGraphFactory::LiveMap() {
   /* TODO: Put your lab6 code here */
+  // for(auto node = flowgraph_->Nodes()->GetList().begin(); node != flowgraph_->Nodes()->GetList().end(); node++){
+  //   printf("%s\n",(*node)->NodeInfo()->to_string().c_str());
+  //   for(auto temp :(*node)->NodeInfo()->Def()->GetList()){
+  //     printf("temp %d",temp->Int());
+  //   }
+  //   printf("\n");
+  // }
 
   // initialize
   for(auto node: flowgraph_->Nodes()->GetList()){
@@ -140,6 +147,7 @@ void LiveGraphFactory::InterfGraph() {
 
   // build the interference graph
   for(auto node: flowgraph_->Nodes()->GetList()){
+    printf("%s \n",node->NodeInfo()->to_string().c_str());
     temp::TempList *live = out_.get()->Look(node);
     // printf("%s\n out_live:",node->NodeInfo()->to_string().c_str());
     if(typeid(*(node->NodeInfo())) == typeid(assem::MoveInstr)) {
@@ -155,6 +163,10 @@ void LiveGraphFactory::InterfGraph() {
     //   printf("temp %d // ",t->Int());
     // }
     // printf("\n");
+    for(auto def_temp: node->NodeInfo()->Def()->GetList()){
+      printf("t%d ",def_temp->Int());
+    }
+    printf("\n");
     for(auto def_temp: node->NodeInfo()->Def()->GetList())
       for(auto live_temp:live->GetList()) {
         INodePtr def_node = temp_node_map_->Look(def_temp);
@@ -165,6 +177,15 @@ void LiveGraphFactory::InterfGraph() {
         }
       }
   }
+
+  for(auto it = live_graph_.moves->GetList().begin(); it != live_graph_.moves->GetList().end(); it++){
+      std::pair<live::INodePtr, live::INodePtr> move = (*it);
+      if(move.first->Adj()->Contain(move.second)){
+        it++;
+        live_graph_.moves->Delete(move.first,move.second);
+        it--;
+      }
+    }
   
   // init the degree_ map
   for(auto node: live_graph_.interf_graph->Nodes()->GetList()){
