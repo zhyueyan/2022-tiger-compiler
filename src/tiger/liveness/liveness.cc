@@ -84,12 +84,12 @@ void LiveGraphFactory::LiveMap() {
       temp::TempList *node_in = in_.get()->Look(*node);
       temp::TempList *node_out = out_.get()->Look(*node);
       temp::TempList *node_in_new = (*node)->NodeInfo()->Use()->Union(node_out->Differ((*node)->NodeInfo()->Def())); //new 什么时候release？
-      printf("node_in_new:");
-      for(auto t:node_in_new->GetList()){
-        printf("temp %d // ",t->Int());
-      }
-      printf("\n");
-      printf("%s\n ",(*node)->NodeInfo()->to_string().c_str());
+      // printf("node_in_new:");
+      // for(auto t:node_in_new->GetList()){
+      //   printf("temp %d // ",t->Int());
+      // }
+      // printf("\n");
+      // printf("%s\n ",(*node)->NodeInfo()->to_string().c_str());
       temp::TempList *node_out_new = new temp::TempList();
       // printf("succ nodes:");
       for(auto succ_node: (*node)->Succ()->GetList()){
@@ -97,11 +97,11 @@ void LiveGraphFactory::LiveMap() {
         node_out_new = node_out_new->Union(in_.get()->Look(succ_node));
       }
       // printf("\n");
-      printf("node_out_new:");
-      for(auto t:node_out_new->GetList()){
-        printf("temp %d // ",t->Int());
-      }
-      printf("\n");
+      // printf("node_out_new:");
+      // for(auto t:node_out_new->GetList()){
+      //   printf("temp %d // ",t->Int());
+      // }
+      // printf("\n");
       if(node_out_new->Differ(node_out)->GetList().size() != 0 || node_in_new->Differ(node_in)->GetList().size() != 0){
         changed = true;
       }
