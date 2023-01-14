@@ -112,6 +112,7 @@ tree::Stm *procEntryExit1(Frame* frame, tree::Exp* body) {
   tree::Stm *restore = new tree::ExpStm(new tree::ConstExp(0));
   temp::TempList *callee_save = reg_manager->CalleeSaves();
   for(int i = 0 ; i < callee_save->GetList().size(); i++){
+    if(i == 1) continue;
     temp::Temp *new_temp = temp::TempFactory::NewTemp();
     stm = new tree::SeqStm(stm,new tree::MoveStm(new tree::TempExp(new_temp),new tree::TempExp(callee_save->NthTemp(i))));
     restore = new tree::SeqStm(restore,new tree::MoveStm(new tree::TempExp(callee_save->NthTemp(i)),new tree::TempExp(new_temp)));

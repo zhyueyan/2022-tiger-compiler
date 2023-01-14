@@ -136,8 +136,8 @@ void ProgTr::Translate() {
   
   tr::ExpAndTy* et = absyn_tree_.get()->Translate(venv_.get(),tenv_.get(),main_level_.get(),temp::LabelFactory::NamedLabel("tigermain"),errormsg_.get());
   // et->exp_->UnCx(errormsg_.get());
-  frame::ProcFrag *frag = new frame::ProcFrag(et->exp_->UnNx(), main_level_.get()->frame_);
-  
+  // frame::ProcFrag *frag = new frame::ProcFrag(et->exp_->UnNx(), main_level_.get()->frame_);
+  frame::ProcFrag *frag = new frame::ProcFrag(frame::procEntryExit1(main_level_.get()->frame_,et->exp_->UnEx()), main_level_.get()->frame_);
   frags->PushBack(frag);
 }
 

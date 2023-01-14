@@ -145,7 +145,7 @@ temp::Temp *BinopExp::Munch(assem::InstrList &instr_list, std::string_view fs) {
     temp::Temp *rdx = reg_manager->ArgRegs()->NthTemp(2);
     instr_list.Append(new assem::MoveInstr("movq `s0, `d0", new temp::TempList(reg_manager->ReturnValue()), new temp::TempList(left_temp)));
     instr_list.Append(new assem::OperInstr("cqto", new temp::TempList({rdx, reg_manager->ReturnValue()}), new temp::TempList(reg_manager->ReturnValue()), NULL));
-    instr_list.Append(new assem::OperInstr("idivq `s1", new temp::TempList({rdx, reg_manager->ReturnValue()}), new temp::TempList({reg_manager->ReturnValue(),right_temp}), NULL));
+    instr_list.Append(new assem::OperInstr("idivq `s1", new temp::TempList({rdx, reg_manager->ReturnValue()}), new temp::TempList({reg_manager->ReturnValue(),right_temp,rdx}), NULL));
     instr_list.Append(new assem::MoveInstr("movq `s0, `d0", new temp::TempList(r), new temp::TempList(reg_manager->ReturnValue())));
     return r;
   }

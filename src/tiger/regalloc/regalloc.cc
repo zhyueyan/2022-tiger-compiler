@@ -57,30 +57,30 @@ namespace ra {
             else if(!spill_worklist_->GetList().empty())
                 SelectSpill();
 
-            if(!simplify_worklist_->GetList().empty()){
-                printf("simplify list\n");
-                for(auto node: simplify_worklist_->GetList()){
-                    printf("temp%d ",node->NodeInfo()->Int());
-                }
-            }
+            // if(!simplify_worklist_->GetList().empty()){
+            //     printf("simplify list\n");
+            //     for(auto node: simplify_worklist_->GetList()){
+            //         printf("temp%d ",node->NodeInfo()->Int());
+            //     }
+            // }
                 
-            printf("\n");
-            if(!worklist_moves_->GetList().empty()){
-                printf("move list\n");
-                for(auto node: worklist_moves_->GetList()){
-                    printf("edge %d %d ",node.first->NodeInfo()->Int(),node.second->NodeInfo()->Int());
-                }
-            }
+            // printf("\n");
+            // if(!worklist_moves_->GetList().empty()){
+            //     printf("move list\n");
+            //     for(auto node: worklist_moves_->GetList()){
+            //         printf("edge %d %d ",node.first->NodeInfo()->Int(),node.second->NodeInfo()->Int());
+            //     }
+            // }
                 
-            printf("\n");
-            if(!freeze_worklist_->GetList().empty()){
-                printf("freeze list\n");
-                for(auto node: freeze_worklist_->GetList()){
-                    printf("temp%d ",node->NodeInfo()->Int());
-                }
-            }
+            // printf("\n");
+            // if(!freeze_worklist_->GetList().empty()){
+            //     printf("freeze list\n");
+            //     for(auto node: freeze_worklist_->GetList()){
+            //         printf("temp%d ",node->NodeInfo()->Int());
+            //     }
+            // }
                 
-            printf("\n");
+            // printf("\n");
         }
 
         AssignColors();
@@ -127,7 +127,8 @@ namespace ra {
         select_stack_->Prepend(node);
         /* TODO: delete related edges and nodes, update degree */
         for(auto adj_node: Adjacent(node)->GetList()){
-            DecrementDegree(adj_node);
+            if(!precolored_->Contain(adj_node))
+                DecrementDegree(adj_node);
         }
         // for(auto node: simplify_worklist_->GetList()){
         //     printf("simplify\n");
@@ -218,7 +219,7 @@ namespace ra {
             live::INodeListPtr list = Adjacent(node);
             list->Unique_Append(node);
             EnableMoves(list);
-            // if(!precolored_->Contain(node)){
+            if(!precolored_->Contain(node)){
                 spill_worklist_->DeleteNode(node);
                 if(MoveRelated(node)){
                     freeze_worklist_->Unique_Append(node);
@@ -226,7 +227,7 @@ namespace ra {
                 else{
                     simplify_worklist_->Unique_Append(node);
                 }
-            // }
+            }
             
         }
     }
@@ -282,6 +283,7 @@ namespace ra {
             printf("Coalesce temp %d temp %d\n",x->NodeInfo()->Int(),y->NodeInfo()->Int());
         } 
         else {
+
             active_moves_->Unique_Append(move_para.first,move_para.second);
         }
 
@@ -311,6 +313,7 @@ namespace ra {
     {
         int k = 0;
         for(auto t: Adjacent(u)->Union(Adjacent(v))->GetList()){
+            printf("temp%d degree %d ",t->NodeInfo()->Int(),live_graph_fac_->degree_->at(t));
             if(live_graph_fac_->degree_->at(t) >= K)
                 k++;
         }
@@ -328,10 +331,13 @@ namespace ra {
         nodes->Append(v);
         EnableMoves(nodes);
         printf("combine %d,%d\n", u->NodeInfo()->Int(), v->NodeInfo()->Int());
-        for(auto t: Adjacent(v)->Diff(Adjacent(u))->GetList()){
+        for(auto t: Adjacent(v)->GetList()){
             printf("add temp %d ",t->NodeInfo()->Int());
-            live_graph_fac_->GetLiveGraph().interf_graph->AddEdge(t,u);
-            DecrementDegree(v);
+            if(!t->Adj()->Contain(u)){
+                live_graph_fac_->GetLiveGraph().interf_graph->AddEdge(t,u);
+                live_graph_fac_->degree_->at(t)++;
+            }
+            DecrementDegree(t);
         }
         printf("\n");
         /* coleasce moves */
