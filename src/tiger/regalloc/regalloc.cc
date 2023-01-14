@@ -56,6 +56,31 @@ namespace ra {
                 Freeze();
             else if(!spill_worklist_->GetList().empty())
                 SelectSpill();
+
+            // if(!simplify_worklist_->GetList().empty()){
+            //     printf("simplify list\n");
+            //     for(auto node: simplify_worklist_->GetList()){
+            //         printf("temp%d ",node->NodeInfo()->Int());
+            //     }
+            // }
+                
+            // printf("\n");
+            // if(!worklist_moves_->GetList().empty()){
+            //     printf("move list\n");
+            //     for(auto node: worklist_moves_->GetList()){
+            //         printf("edge %d %d ",node.first->NodeInfo()->Int(),node.second->NodeInfo()->Int());
+            //     }
+            // }
+                
+            // printf("\n");
+            // if(!freeze_worklist_->GetList().empty()){
+            //     printf("freeze list\n");
+            //     for(auto node: freeze_worklist_->GetList()){
+            //         printf("temp%d ",node->NodeInfo()->Int());
+            //     }
+            // }
+                
+            // printf("\n");
         }
 
         AssignColors();
@@ -65,6 +90,7 @@ namespace ra {
             Init();
             RegAlloc();
         }
+    
     }
 
     void RegAllocator::Init()
@@ -101,7 +127,8 @@ namespace ra {
         select_stack_->Prepend(node);
         /* TODO: delete related edges and nodes, update degree */
         for(auto adj_node: Adjacent(node)->GetList()){
-            DecrementDegree(adj_node);
+            if(!precolored_->Contain(adj_node))
+                DecrementDegree(adj_node);
         }
         // for(auto node: simplify_worklist_->GetList()){
         //     printf("simplify\n");
@@ -125,6 +152,25 @@ namespace ra {
             printf("temp %d : %d",n.first->NodeInfo()->Int(), n.second);
             temp::Temp *reg = reg_manager->Registers()->NthTemp(n.second);
             coloring_->Enter(t,reg_manager->temp_map_->Look(reg));
+        }
+        /* start delete replicated */
+        printf("start delete replicated\n");
+        for(auto it = assem_instr_.get()->GetInstrList()->GetList().begin(); it != assem_instr_.get()->GetInstrList()->GetList().end(); it++){
+            printf("%s\n",(*it)->to_string().data());
+            if(typeid(*(*it)) == typeid(assem::MoveInstr)) {
+                if((*it)->Def()->GetList().size() == 1 && (*it)->Use()->GetList().size() == 1){
+                    // color_.begin()
+                    printf("t%d t%d %s %s\n",(*(*it)->Def()->GetList().begin())->Int(),(*(*it)->Use()->GetList().begin())->Int(),coloring_->Look(*(*it)->Def()->GetList().begin())->c_str(),coloring_->Look(*(*it)->Use()->GetList().begin())->c_str());
+                    if(coloring_->Look(*(*it)->Def()->GetList().begin())->compare(*coloring_->Look(*(*it)->Use()->GetList().begin())) == 0){
+                        auto temp = *it;
+                        it++;
+                        assem_instr_.get()->GetInstrList()->Remove(temp);
+                        it--;
+                        // printf("delete ")
+                        
+                    }
+                } 
+            }
         }
         std::unique_ptr<Result> res = std::make_unique<Result>(coloring_,assem_instr_.get()->GetInstrList());
         return std::move(res);
@@ -162,6 +208,8 @@ namespace ra {
         return movelist_n->Intersect(worklist_moves_->Union(active_moves_));
     }
 
+    
+
     live::INodeListPtr RegAllocator::Adjacent(live::INodePtr node)
     {
         return node->Adj()->Diff(select_stack_->Union(coalesced_nodes_));
@@ -174,13 +222,16 @@ namespace ra {
             live::INodeListPtr list = Adjacent(node);
             list->Unique_Append(node);
             EnableMoves(list);
-            spill_worklist_->DeleteNode(node);
-            if(MoveRelated(node)){
-                freeze_worklist_->Unique_Append(node);
+            if(!precolored_->Contain(node)){
+                spill_worklist_->DeleteNode(node);
+                if(MoveRelated(node)){
+                    freeze_worklist_->Unique_Append(node);
+                }
+                else{
+                    simplify_worklist_->Unique_Append(node);
+                }
             }
-            else{
-                simplify_worklist_->Unique_Append(node);
-            }
+            
         }
     }
 
@@ -235,6 +286,7 @@ namespace ra {
             printf("Coalesce temp %d temp %d\n",x->NodeInfo()->Int(),y->NodeInfo()->Int());
         } 
         else {
+
             active_moves_->Unique_Append(move_para.first,move_para.second);
         }
 
@@ -264,6 +316,7 @@ namespace ra {
     {
         int k = 0;
         for(auto t: Adjacent(u)->Union(Adjacent(v))->GetList()){
+            printf("temp%d degree %d ",t->NodeInfo()->Int(),live_graph_fac_->degree_->at(t));
             if(live_graph_fac_->degree_->at(t) >= K)
                 k++;
         }
@@ -280,11 +333,27 @@ namespace ra {
         live::INodeList * nodes = new live::INodeList();
         nodes->Append(v);
         EnableMoves(nodes);
-
-        for(auto t: Adjacent(v)->Diff(Adjacent(u))->GetList()){
-            live_graph_fac_->GetLiveGraph().interf_graph->AddEdge(t,u);
-            DecrementDegree(v);
+        printf("combine %d,%d\n", u->NodeInfo()->Int(), v->NodeInfo()->Int());
+        for(auto t: Adjacent(v)->GetList()){
+            printf("add temp %d ",t->NodeInfo()->Int());
+            if(!t->Adj()->Contain(u)){
+                live_graph_fac_->GetLiveGraph().interf_graph->AddEdge(t,u);
+                live_graph_fac_->degree_->at(t)++;
+            }
+            DecrementDegree(t);
         }
+        printf("\n");
+        /* coleasce moves */
+        // live::MoveList* movelist_v = live_graph_fac_->GetLiveGraph().moves->MoveList_n(v);
+        // live::MoveList* movelist_u = live_graph_fac_->GetLiveGraph().moves->MoveList_n(u);
+        // for(auto n:movelist_v->GetList()){
+        //     if(movelist_u->Contain(n.first,n.second)) continue;
+        //     if(n.first == v)
+        //         live_graph_fac_->GetLiveGraph().moves->Append(u,n.second);
+        //     else
+        //         live_graph_fac_->GetLiveGraph().moves->Append(n.first,u);
+        // }
+        
         if(live_graph_fac_->degree_->at(u) >= K && freeze_worklist_->Contain(u)){
             freeze_worklist_->DeleteNode(u);
             spill_worklist_->Unique_Append(u);
@@ -375,8 +444,11 @@ namespace ra {
             }
             if(find == false){
                 
-                assert(!spilled_nodes_->Contain(node));
-                spilled_nodes_->Append(node);
+                // assert(!spilled_nodes_->Contain(node));
+                if(!spilled_nodes_->Contain(node)){
+                    spilled_nodes_->Append(node);
+                }
+                
             }
             // printf("\n");
             // if(num >= K-1){
